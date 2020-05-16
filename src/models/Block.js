@@ -1,3 +1,6 @@
+'use strict';
+
+var CryptoModule = require('./CryptoModule');
 
 class Block {
 
@@ -9,7 +12,51 @@ class Block {
   var merkleRoot;
 
 /* Métodos */
-  Block () {
+  constructor (previousHash, nonce, transactions) {
+    this.previousHash = previousHash;
+    this.transactions = transactions;
+    this.nonce = nonce;
+    this.timestamp = Date.now();
+    this.raizArbolMerkle = getMerkleRoot();
+    this.hash = calculateHash();
+  }
+
+/*
+ * Un arbol jerárquico puede ser entendido como un heap en el que los hijos se corresponden a los padres segun
+ * [1,2i,2d, 3ii,3id,3di,3dd,4iii,4iid,4idi,4idd,...]
+ * y por lo tanto:
+ * - padre = hijo / 2
+ * -hijos = padre * 2 ó (padre*2)+1
+*/
+  getMerkleRoot(transactions) {
+    if (transactions.length == 1)
+      return CryptoModule.getHash(transactions[0]);
+
+    leftTransactions = []
+    rightTransactions = []
+    transactions.forEach((tr, i) => {
+      if ( i < (transactions.length)/2 )
+        leftTransactions.push(tr)
+      else
+        rightTransactions.push(tr)
+    });
+
+    let leftSonHash = getMerkleRoot(leftTransactions);
+    let rightSonHash = getMerkleRoot(rightTransactions);
+
+    return CryptoModule.getHash(leftSonHash + rightSonHash);
+  }
+
+  calculateHash() {
+    let toHash = '' +
+      this.previousHash +
+      this.timestamp +
+      this.nonce +
+      this.raizArbolMerkle;
+
+    let hash = CryptoModule.getHash(toHash);
+
+    return hash;
   }
 
 /* Getter y setter*/

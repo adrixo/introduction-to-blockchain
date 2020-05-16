@@ -11,7 +11,7 @@ function getMerkleRoot(transactions, level) {
   }
 
   leftTransactions = []
-  rightTransactions = []
+  let rightTransactions = []
   transactions.forEach((tr, i) => {
     //console.log(i, (transactions.length)/2, tr)
     if ( i < (transactions.length)/2 )

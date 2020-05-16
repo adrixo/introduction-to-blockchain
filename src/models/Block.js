@@ -32,8 +32,8 @@ class Block {
     if (transactions.length == 1)
       return CryptoModule.getHash(transactions[0]);
 
-    leftTransactions = []
-    rightTransactions = []
+    let leftTransactions = []
+    let rightTransactions = []
     transactions.forEach((tr, i) => {
       if ( i < (transactions.length)/2 )
         leftTransactions.push(tr)

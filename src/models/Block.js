@@ -4,21 +4,27 @@ var CryptoModule = require('./CryptoModule');
 
 class Block {
 
-/* Variables */
-  var hash;
-  var previousHash;
-  var timestamp;
-  var nonce;
-  var merkleRoot;
-
 /* Métodos */
-  constructor (previousHash, nonce, transactions) {
-    this.previousHash = previousHash;
-    this.transactions = transactions;
-    this.nonce = nonce;
-    this.timestamp = Date.now();
-    this.raizArbolMerkle = getMerkleRoot();
-    this.hash = calculateHash();
+  constructor (previousHash, nonce, transactions, strBlock="") {
+    /*
+    * Construye el bloque a partir de una string
+    */
+    if (strBlock != "") {
+      let json = JSON.parse(strBlock);
+      this.previousHash = json.previousHash;
+      this.transactions = json.transactions;
+      this.nonce = json.nonce;
+      this.timestamp = json.timestamp;
+      this.raizArbolMerkle = json.raizArbolMerkle;
+      this.hash = json.hash;
+    } else {
+      this.previousHash = previousHash;
+      this.transactions = transactions;
+      this.nonce = nonce;
+      this.timestamp = Date.now();
+      this.raizArbolMerkle = this.getMerkleRoot();
+      this.hash = this.calculateHash();
+    }
   }
 
 /*
@@ -41,8 +47,8 @@ class Block {
         rightTransactions.push(tr)
     });
 
-    let leftSonHash = getMerkleRoot(leftTransactions);
-    let rightSonHash = getMerkleRoot(rightTransactions);
+    let leftSonHash = this.getMerkleRoot(leftTransactions);
+    let rightSonHash = this.getMerkleRoot(rightTransactions);
 
     return CryptoModule.getHash(leftSonHash + rightSonHash);
   }
@@ -57,6 +63,14 @@ class Block {
     let hash = CryptoModule.getHash(toHash);
 
     return hash;
+  }
+
+  stringify() {
+    return JSON.stringify(this);
+  }
+
+  validate() {
+    return true;
   }
 
 /* Getter y setter*/

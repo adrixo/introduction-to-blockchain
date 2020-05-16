@@ -25,6 +25,6 @@ console.log("\n Guardando transacción como string... ")
 stringTransaction = customTransaction.stringify();
 
 console.log("\n Recuperando transacción... ")
-secondTransaction = new Transaction(null, null, null, strTransaction=stringTransaction);
+transactionCopy = new Transaction(null, null, null, strTransaction=stringTransaction);
 
-console.log("\nTransacción recuperada: " + secondTransaction.stringify() + "\n")
+console.log("\nTransacción recuperada: " + transactionCopy.stringify() + "\n")

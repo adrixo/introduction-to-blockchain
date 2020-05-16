@@ -7,9 +7,57 @@ class BlockChain {
     this.blockChain = blockChain;
   }
 
+  getBlockChainInfo() {
+    if (this.blockChain.length == 0)
+      return "Just instance of void blockchain."
+
+    const info = ""
+      + "Length: " + this.blockChain.length + "\n"
+      + "CreationDate: " + this.blockChain[0].getTimestamp();
+
+    return info;
+  }
+
+  getLastBlock() {
+    if (this.blockChain.length <= 0)
+      return null;
+
+    return this.blockChain[this.blockChain.length - 1];
+  }
+
+  getLastHash() {
+    return "1234";
+  }
+
+  validateNewBlockCongruency(newBlock) {
+    var lastBlock = this.getLastBlock();
+
+    if (lastBlock == null)
+      return true
+
+    var auxBlock = newBlock;
+    auxBlock.setPreviousHash(lastBlock.getHash());
+    if (!auxBlock.validate())
+      return false;
+
+    if ( newBlock.calculateHash() != auxBlock.getHash())
+      return false;
+
+    return true;
+  }
+
+  addBlock(newBlock) {
+    if (!this.validateNewBlockCongruency(newBlock))
+      return false;
+
+    this.blockChain.push(newBlock);
+
+    return true;
+  }
+
   validateBlockchain(depth=0){
     if (this.blockChain.length == 0) {
-      console.log("INTENTANDO VALIDAR CADENA VACÍA!")
+      console.log("Error: INTENTANDO VALIDAR CADENA VACÍA!")
       return true;
     }
 
@@ -20,9 +68,9 @@ class BlockChain {
       operativeBlockchain = this.blockChain; // esta copia quizas consume recursos innecesarios, lo mas eficaz me parece duplicar el siguiente código
     }
 
-    previousHash = operativeBlockchain[0].getPreviousHash();
+    var currentHash = operativeBlockchain[0].getPreviousHash();
     this.blockChain.forEach((block, i) => {
-      currentPreviousHash = block.getPreviousHash();
+      var currentPreviousHash = block.getPreviousHash();
       if (currentHash == currentPreviousHash)
         currentHash = block.calculateHash()
       else{

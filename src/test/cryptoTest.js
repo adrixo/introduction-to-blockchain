@@ -1,57 +1,27 @@
-var crypto = require('crypto');
+#!/usr/bin/node
 
-var passphrase = "dificileurrima";
-var publicKey, privateKey;
+var CryptoModule = require('../models/CryptoModule');
 
-function encrypt (publicKey, data) {
-  var dataBuffer = Buffer.from(data, 'utf8');
-  console.log("data: ", data)
-  console.log(dataBuffer)
 
-  var encryptedData = crypto.publicEncrypt(publicKey, dataBuffer);
-  encryptedData = encryptedData.toString('base64');
+console.log("CryptoTest")
 
-  return encryptedData
+async function cryptoTest () {
+  console.log("Generando par de claves...");
+  pair = await CryptoModule.generatePair();
+  console.log("Par generado");
+
+  fraseImportante = "Esta frase es muy importante.";
+  console.log("\nFirmando: ", fraseImportante);
+  signature = CryptoModule.sign(pair.privateKey, fraseImportante);
+  console.log("Firma: ", signature)
+
+  console.log("Validando...");
+  result = CryptoModule.validateSign(pair.publicKey, signature);
+  console.log("Es correcta: ", result);
+
+  console.log("\nObteniendo hash de la firma...");
+  hash = CryptoModule.getHash(signature);
+  console.log(hash)
 }
 
-function decrypt (privateKey, encryptedData) {
-  encryptedData = Buffer.from(encryptedData, 'base64')
-  const decryptedData = crypto.privateDecrypt(
-    {
-      key: privateKey.toString(),
-      passphrase: passphrase,
-    },
-    encryptedData,
-  )
-  return decryptedData.toString('utf8')
-}
-
-crypto.generateKeyPair('rsa', {
-  modulusLength: 512,
-  publicKeyEncoding: {
-    type: 'spki',
-    format: 'pem'
-  },
-  privateKeyEncoding: {
-    type: 'pkcs8',
-    format: 'pem',
-    cipher: 'aes-256-cbc',
-    passphrase: passphrase
-  }
-}, (err, public, secret) => {
-  // Handle errors and use the generated key pair.
-  if (err) {
-    console.log(err);
-  } else {
-    publicKey = public;
-    console.log(publicKey);
-    privateKey = secret;
-    console.log(privateKey);
-
-    var encryptedData = encrypt(publicKey, "Hola desencriptaditos!");
-    console.log("Encrypted data: ", encryptedData)
-
-    var decryptedData = decrypt(privateKey, encryptedData);
-    console.log("DecryptedData data: ", decryptedData)
-  }
-});
+cryptoTest()

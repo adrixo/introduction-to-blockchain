@@ -6,13 +6,15 @@ var Transaction = require('../models/Transaction');
 var CryptoModule = require('../models/CryptoModule');
 
 // Peticion simple
-/*axios.get('http://localhost:8005/block')
+/*
+axios.get('http://localhost:8005/block')
   .then(response => {
     console.log(response.data);
   })
   .catch(error => {
     console.log(error);
-  }); */
+  });
+*/
 
 var client1Key = CryptoModule.generatePair();
 var client1Amount = 10;
@@ -27,7 +29,7 @@ var customBlock = new Block("genesis", 2, transactions);
 
 var jsonBlock = customBlock.getJSON();
 
-axios.post('/block', jsonBlock)
+axios.post('http://localhost:8005/block', jsonBlock)
   .then(function (response) {
     console.log(response);
   })

@@ -5,12 +5,12 @@ var CryptoModule = require('./CryptoModule');
 class Block {
 
 /* Métodos */
-  constructor (previousHash, nonce, transactions, strBlock="") {
+  constructor (previousHash, nonce, transactions, jsonBlock="") {
     /*
     * Construye el bloque a partir de una string
     */
-    if (strBlock != "") {
-      let json = JSON.parse(strBlock);
+    if (jsonBlock != "") {
+      let json = jsonBlock;
       this.previousHash = json.previousHash;
       this.transactions = json.transactions;
       this.nonce = json.nonce;

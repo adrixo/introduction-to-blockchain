@@ -14,6 +14,27 @@ class Pool {
     this.pool = pool;
   }
 
+  checkTransaction(transaction) {
+    if (transaction.validate())
+      return false;
+
+    this.pool.forEach((tr, i) => {
+      if (transaction.getHash() == tr.getHash())
+        return false;
+    });
+
+    return true;
+  }
+
+  addTransaction(transaction) {
+    if (checkTransaction(transaction)){
+      this.pool.push(transaction);
+      return true;
+    }
+
+    return false;
+  }
+
 /* Getter y setter*/
 
 //1. pool

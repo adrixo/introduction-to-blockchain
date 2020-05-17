@@ -14,22 +14,10 @@ app.listen(8005, () => {
  console.log("localhost:8005");
 });
 
-var client1Key = CryptoModule.generatePair();
-var client1Amount = 10;
-var client2Key = CryptoModule.generatePair();
-var client2Amount = 5;
-
-var tr1 = new Transaction(client1Key.publicKey, client2Key.publicKey, client1Amount);
-var tr2 = new Transaction(client2Key.publicKey, client1Key.publicKey, client2Amount);
-var transactions = [tr1, tr2]
-
-console.log("Generando bloque genesis...");
-var customBlock = new Block("genesis", 2, transactions);
-
 var notFound = {
  error: true,
  codigo: 404,
- mensaje: 'URL no encontrada'
+ mensaje: 'There is no block'
 };
 
 var ok = {
@@ -38,12 +26,17 @@ var ok = {
  mensaje: 'bloque añadido'
 };
 
+var block = undefined;
 
 app.get('/block', function(req, res) {
   console.log(req)
   try {
-    block = customBlock.getJSON();
-    res.send(block);
+    if (block == undefined) {
+      res.send(notFound);
+    } else {
+      block = customBlock.getJSON();
+      res.send(block);
+    }
   } catch (err) {
     res.send(notFound);
   }
@@ -51,8 +44,9 @@ app.get('/block', function(req, res) {
 
 
 app.post('/block', function (req, res) {
-
-  console.log(req);
-
+  blockJson = req.body;
+  console.log(req.client)
+  block = new Block(null, null, null, blockJson);
+  console.log(block.stringify())
   res.send(ok);
 });

@@ -69,6 +69,18 @@ class Block {
     return JSON.stringify(this);
   }
 
+  getJSON() {
+    let jsonBlock = {
+      "previousHash": this.previousHash,
+      "transactions": this.transactions,
+      "nonce": this.nonce,
+      "timestamp": this.timestamp,
+      "raizArbolMerkle": this.raizArbolMerkle,
+      "hash": this.hash
+    }
+    return jsonBlock;
+  }
+
   validate() {
     return true;
   }

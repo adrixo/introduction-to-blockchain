@@ -84,7 +84,7 @@ class BlockChain {
 
 /* Getter y setter*/
 
-//1. hash
+//1. Blookchain
   getBlockChain() {
     return this.blockChain;
   }

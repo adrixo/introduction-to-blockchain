@@ -1,0 +1,31 @@
+{
+  "name": "introduction-to-blockchain",
+  "version": "1.0.0",
+  "description": "A simple blockchain implementation",
+  "main": "index.js",
+  "directories": {
+    "example": "examples",
+    "test": "test"
+  },
+  "dependencies": {
+    "axios": "^0.19.2",
+    "body-parser": "^1.19.0",
+    "crypto": "^1.0.1",
+    "express": "^4.17.1",
+    "https": "^1.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adrixo/introduction-to-blockchain.git"
+  },
+  "author": "xuan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/adrixo/introduction-to-blockchain/issues"
+  },
+  "homepage": "https://github.com/adrixo/introduction-to-blockchain#readme"
+}

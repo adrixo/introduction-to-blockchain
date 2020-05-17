@@ -53,6 +53,12 @@ var blockError = {
  mensaje: 'bloque incorrecto'
 };
 
+var error = {
+ error: true,
+ codigo: 200,
+ mensaje: 'error'
+};
+
 
 /************************ Peticiones de nodo *****************************/
 /* @post
@@ -85,7 +91,6 @@ app.post('/deleteNode', function (req, res) {
 app.get('/getBlockChain', function (req, res) {
   console.log("Sending blockChain");
   let jsonBlockChain = blockChain.getBlockChain();
-  console.log(jsonBlockChain);
   res.send(jsonBlockChain);
 });
 
@@ -123,22 +128,39 @@ app.post('/addBlock', function (req, res) {
 /* @post
 * Devuelve el pool de transacciones
 */
-app.post('/getPool', function (req, res) {
-  res.send("here is the pool");
+app.get('/getPool', function (req, res) {
+  try {
+    console.log("Sending pool")
+    let jsonPool = pool.getPool();
+    res.send(jsonPool);
+  } catch (err) {
+    console.log(err);
+    res.send(error);
+  }
 });
 
 
 /* @post
 * Añade una nueva transaccion
 */
-app.post('/addTransaction', function (req, res) {
-  res.send("thank you for the transaction");
+app.get('/addTransaction', function (req, res) {
+  try {
+    console.log("Adding transaction")
+    transactionJson = req.body;
+    newTransaction = new Transaction(null, null, null, transactionJson);
+    pool.transactionJson(newTransaction);
+    res.send(jsonPool);
+  } catch (err) {
+    console.log(err);
+    res.send(error);
+  }
 });
 
 /* @post
 * Elimina una transaccion
 */
-app.post('/deleteTransaction', function (req, res) {
+app.get('/deleteTransaction', function (req, res) {
+  // TODO: debe ser array transacciones
   res.send("Transaction deleted");
 });
 
@@ -156,6 +178,7 @@ async function delay(delayInms) {
 async function run() {
 
   let attemp = 0;
+  // TODO: setupFinished, se espera hasta que sea falso, esto es hasta que sea master y tenga cadena, o reciba nodos vecinos y su cadenas
   while(true) {
     await delay(15000);
     attemp += 1;
@@ -165,7 +188,7 @@ async function run() {
     try {
 
       // Se seleccionan las transacciones y se intenta minar un bloque
-      let transactionsToAdd = ["tr1", "tr2"];
+      let transactionsToAdd = ["tr1", "tr2"]; // TODO: toma de transacciones
       let lastHash = blockChain.getLastHash();
 
       mineFlag = true;
@@ -179,12 +202,13 @@ async function run() {
       }
 
       // Si se encuenrta un bloque válido
-      if (triedHash.startsWith(prefix)) {
+      if (triedHash.startsWith(prefix) && mineFlag) {
         console.log("Found a valid Block! starting proof of work")
         result = blockChain.addBlock(blockAttemp);
-        console.log(result)
+        console.log(result) // TODO: controlar error
         // notificamos a los demas nodos
         // lo añadimos a la cadena de bloques
+        // eliminamos transacciones del pool
       }
 
     } catch (err) {

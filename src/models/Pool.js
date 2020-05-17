@@ -35,6 +35,27 @@ class Pool {
     return false;
   }
 
+/*
+*
+*/
+  deleteTransaction(transaction) {
+    if (transaction.validate())
+      return false;
+
+    this.pool.forEach((tr, i) => {
+      if (transaction.getHash() == tr.getHash())
+        this.pool.splice(i, 1); // TODO: testear
+        return true;
+    });
+
+    return false;
+  }
+
+  getJsonPool() {
+    return {pool: this.pool}
+  }
+
+
 /* Getter y setter*/
 
 //1. pool

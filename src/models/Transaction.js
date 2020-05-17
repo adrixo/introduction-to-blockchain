@@ -15,12 +15,12 @@ class Transaction {
 * - Firma digital
 * - Timestamp
 */
-  constructor (senderPublicKey, receiverPublicKey, amount, strTransaction="") {
+  constructor (senderPublicKey, receiverPublicKey, amount, jsonTransaction="") {
     /*
     * Construye la transacción a partir de una string
     */
-    if (strTransaction != "") {
-      let json = JSON.parse(strTransaction);
+    if (jsonTransaction != "") {
+      let json = jsonTransaction;
       this.senderPublicKey = json.senderPublicKey;
       this.receiverPublicKey = json.receiverPublicKey;
       this.amount = json.amount;

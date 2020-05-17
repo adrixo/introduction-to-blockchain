@@ -11,7 +11,7 @@ class BlockChain {
     if (this.blockChain.length == 0)
       return "Just instance of void blockchain."
 
-    const info = ""
+    var info = ""
       + "Length: " + this.blockChain.length + "\n"
       + "CreationDate: " + this.blockChain[0].getTimestamp();
 
@@ -26,7 +26,12 @@ class BlockChain {
   }
 
   getLastHash() {
-    return "1234";
+    let lastBlock = this.getLastBlock();
+    if (lastBlock != null) {
+      let lastHash = lastBlock.getHash();
+      return lastHash;
+    }
+    return "genesis";
   }
 
   validateNewBlockCongruency(newBlock) {
@@ -64,6 +69,20 @@ class BlockChain {
     var operativeBlockchain;
     if (depth != 0) {
       operativeBlockchain = this.blockChain.splice(this.blockChain.length - depth, this.blockChain.length);
+
+    } else if (depth == 1) {
+      return true;
+      /* TODO: la he liado, comprobar dos últimos solamente
+      let lastHash = this.getLastHash();
+
+      if ( lastHash == "genesis" )
+        return false;
+
+      if ( newBlock.validate() && newBlock.getHash() == lastHash )
+        return true;
+
+      return false;
+      */
     } else {
       operativeBlockchain = this.blockChain; // esta copia quizas consume recursos innecesarios, lo mas eficaz me parece duplicar el siguiente código
     }

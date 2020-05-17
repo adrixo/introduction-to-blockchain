@@ -29,7 +29,7 @@ var customBlock = new Block("genesis", 2, transactions);
 
 var jsonBlock = customBlock.getJSON();
 
-axios.post('http://localhost:8005/block', jsonBlock)
+axios.post('http://localhost:8005/getBlockChain', jsonBlock)
   .then(function (response) {
     console.log(response);
   })

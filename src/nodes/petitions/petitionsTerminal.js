@@ -13,18 +13,22 @@ function newRandomTransactions() {
   var client2Amount = 5;
 
   var tr1 = new Transaction(client1Key.publicKey, client2Key.publicKey, client1Amount);
+  tr1.sign(client1Key.privateKey);
   var tr2 = new Transaction(client2Key.publicKey, client1Key.publicKey, client2Amount);
+  tr2.sign(client2Key.privateKey);
+
   var transactions = [tr1, tr2]
 
   return transactions;
 }
 
+var workingIp = "localhost";
 var workingPort = 8005;
 
 /**********************************************************************************/
 /********************************Terminal *****************************************/
 /**********************************************************************************/
-const terminalText = ">> "
+var terminalText = ">> "
 function userInput() {
   const rl = readline.createInterface({
       input: process.stdin,
@@ -37,9 +41,10 @@ function userInput() {
   }));
 }
 
+var exit = false;
 //Simple interactive terminal
 async function openInteractiveTerminal() {
-  while(true) {
+  while(!exit) {
     try {
       const userCommand = await userInput();
 
@@ -50,25 +55,80 @@ async function openInteractiveTerminal() {
         case "version":
         case "v":
           break;
-
         case "mode":
+          break;
+
+        case "ip":
+          terminalText = "Enter IP>> "
+          workingIp = await userInput();
+          terminalText = ">> "
+          break;
+
+        case "port":
+          terminalText = "Enter Port>> "
+          workingPort = await userInput();
+          terminalText = ">> "
           break;
 
         case "getNodes":
         case "gn":
-          let auxNodes = await Petitions.getNodes(8006);
+          let auxNodes = await Petitions.getNodes(workingIp, workingPort);
           console.log(auxNodes.data);
-          console.log("hey");
+          break;
+
+        case "addNode":
+        case "an":
+          terminalText = "Enter ip>> "
+          nodeIp = await userInput();
+          terminalText = "Enter port>> "
+          nodePort = await userInput();
+          let resNode = await Petitions.addNode(workingIp, workingPort, {"ip": nodeIp, "port": nodePort});
+          console.log(resNode);
+          break;
+
+        case "deleteNode":
+        case "dn":
+          terminalText = "Enter ip>> "
+          nodeIp = await userInput();
+          terminalText = "Enter port>> "
+          nodePort = await userInput();
+          let resDel = await Petitions.deleteNode(workingIp, workingPort, {"ip": nodeIp, "port": nodePort});
+          console.log(resDel);
+          break;
+
+        case "getBlockchain":
+        case "gb":
+          let auxBC = await Petitions.getBlockChain(workingIp, workingPort);
+          console.log(auxBC.data);
+          break;
+
+        case "addBlock":
+        case "ab":
+          break;
+
+        case "getPool":
+        case "gp":
+          let auxPool = await Petitions.getPool(workingIp, workingPort);
+          console.log(auxPool.data);
+          break;
+
+        case "addTransaction":
+        case "at":
+          let randomTransactions = newRandomTransactions();
+          Petitions.addTransaction(workingIp, workingPort, randomTransactions[0]);
           break;
 
         case "addUserTransaction":
-        case "at":
-          let randomTransactions = newRandomTransactions();
-          Petitions.addUserTransaction(workingPort, randomTransactions[0]);
+        case "aut":
+          let randomUserTransactions = newRandomTransactions();
+          Petitions.addUserTransaction(workingIp, workingPort, randomUserTransactions[0]);
+          break;
 
+        case "exit":
+          exit = true;
           break;
         default:
-          log("Invalid command");
+          console.log("Invalid command");
       }
     } catch (err) {
       console.log("ERRROR ", err);

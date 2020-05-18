@@ -61,6 +61,20 @@ class Pool {
     return poolInfo;
   }
 
+  getTransactionsToMine(nTransactions=3) {
+    let trToMine = [];
+
+    this.pool.forEach((tr, i) => {
+      if (i<nTransactions) {
+        trToMine.push(tr);
+      } else {
+        return trToMine;
+      }
+    });
+
+    return trToMine;
+  }
+
 /* Getter y setter*/
 
 //1. pool

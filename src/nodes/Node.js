@@ -1,5 +1,14 @@
 #!/usr/bin/node
-
+const express = require("express");
+const bodyParser = require('body-parser');
+var Block = require('../models/Block');
+var Transaction = require('../models/Transaction');
+var BlockChain = require('../models/BlockChain');
+var NodeModel = require('../models/NodeModel');
+var Pool = require('../models/Pool');
+var CryptoModule = require('../models/CryptoModule');
+var Petitions = require('./petitions/Petitions');
+var AsyncLock = require('async-lock');
 var ip = require("ip");
 
 // Si se le pasa parámetros ipMaster:puertoMaster entiende que no es master
@@ -39,22 +48,14 @@ if (args.length!=3) {
   }
 }
 
-const express = require("express");
-const bodyParser = require('body-parser');
-var Block = require('../models/Block');
-var Transaction = require('../models/Transaction');
-var BlockChain = require('../models/BlockChain');
-var NodeModel = require('../models/NodeModel');
-var Pool = require('../models/Pool');
-var CryptoModule = require('../models/CryptoModule');
-var Petitions = require('./petitions/Petitions');
-
 const app = express();
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 /************************ Instanciacion *****************************/
+
+nodeKeys = CryptoModule.generatePair();
 
 var setupFinished = false;
 //Indica al proceso si debe seguir minando
@@ -75,13 +76,15 @@ var nodes = [];
 * TODO: contemplar: si no puede conectarse como master es que el puerto está bindeado y el servidor no responde
 */
 async function initialiceNode() {
-  console.log("Searching for nodes...");
+  console.log("[STARTUP] Searching for nodes...");
   if (isMasterNode) {
     // Si esta instancia es la del nodo maestro
     selfNode = new NodeModel(nodeAddr, nodePort);
     nodes.push(selfNode);
     // Como nodo master,  crea el bloque genesis o lo carga de base de datos/fichero
-    let genesis = new Block("genesis", 1111, ["trGA", "trGB"]);
+    let firstRewardTransaction = new Transaction(selfNode.getId(), selfNode.getId(), 100);
+    firstRewardTransaction.sign(nodeKeys.privateKey);
+    let genesis = new Block("genesis", 12345, [firstRewardTransaction]);
     blockChain.addBlock(genesis);
   }
 
@@ -96,7 +99,7 @@ async function initialiceNode() {
         nodes.push(auxNode);
       });
 
-      console.log("My neighbor nodes are: ", nodes);
+      console.log("[STARTUP] My neighbor nodes are: ", nodes);
 
       // 1. Se pide la cadena de bloques
       let getBlockChainResponse = await Petitions.getBlockChain(masterNodeAddr, masterNodePort);
@@ -121,7 +124,7 @@ async function initialiceNode() {
       console.log(err);
     }
   }
-  console.log("Initialiced");
+  console.log("[STARTUP] Setup Finished");
 }
 
 
@@ -130,7 +133,7 @@ async function initialiceNode() {
 /************************************************************************/
 function initialiceRest() {
   app.listen(nodePort, () => {
-   console.log("Starting express at "+nodeAddr+":"+nodePort);
+   console.log("[REST] Starting express at "+nodeAddr+":"+nodePort);
   });
 
   /*TODO: *********Mensajes respuesta*************/
@@ -164,6 +167,7 @@ function initialiceRest() {
   * Devuelve la lista de nodos actualmente en la red
   */
   app.get('/getNodes', function (req, res) {
+    console.log("[REST] Sending nodes...")
     let jsonNodes = [];
 
     nodes.forEach((n, i) => {
@@ -190,7 +194,7 @@ function initialiceRest() {
 
     if (!repeated){
       nodes.push(newNode);
-      console.log("New node at "+newNode.getIp()+':'+newNode.getPort());
+      console.log("[REST] New node at "+newNode.getIp()+':'+newNode.getPort());
     }
 
     res.send("Done");
@@ -206,7 +210,7 @@ function initialiceRest() {
     nodes.forEach((node, i) => {
       if (node.getId() == delNode.getId()) {
         nodes.splice(i, 1);
-        console.log("Node down at "+delNode.getIp()+':'+delNode.getPort());
+        console.log("[REST] Node down at "+delNode.getIp()+':'+delNode.getPort());
         break
       }
     });
@@ -220,7 +224,7 @@ function initialiceRest() {
   * Recibe como parametro un bloque y lo instancia localmente como objeto block
   */
   app.get('/getBlockChain', function (req, res) {
-    console.log("Sending blockChain");
+    console.log("[REST] Sending blockChain");
     let jsonBlockChain = blockChain.getBlockChain();
     res.send(jsonBlockChain);
   });
@@ -235,10 +239,10 @@ function initialiceRest() {
   */
   app.post('/addBlock', function (req, res) {
     blockJson = req.body;
-    console.log("New block discover by neighbor...");
+    console.log("[REST] New block discover by neighbor...");
     try {
       let newBlock = new Block(null, null, null, blockJson);
-      console.log("Block received-hash: " + newBlock.getHash());
+      console.log("[REST] Block received-hash: " + newBlock.getHash());
 
       // Se comprueba si es válido y encaja en la cadena de bloques
       if (newBlock.validate()) {
@@ -250,14 +254,16 @@ function initialiceRest() {
           res.send(blockAdded);
 
         } else {
-          console.log("The new block is valid but doesn't fix in the blockchain. ")
+          console.log("[REST] The new block is valid but doesn't fix in the blockchain. ")
+          res.send(blockError);
         }
       } else {
-        console.log("Block error");
+        console.log("[REST] Block error");
         res.send(blockError);
       }
 
     } catch (err) {
+      console.log("[REST] Add block error");
       res.send(blockError);
     }
   });
@@ -269,7 +275,7 @@ function initialiceRest() {
   */
   app.get('/getPool', function (req, res) {
     try {
-      console.log("Sending pool")
+      console.log("[REST] Sending pool")
       let jsonPool = pool.getPool();
       res.send(jsonPool);
     } catch (err) {
@@ -283,7 +289,7 @@ function initialiceRest() {
   */
   app.post('/addTransaction', function (req, res) {
     try {
-      console.log("Adding transaction")
+      console.log("[REST] Adding transaction")
       transactionJson = req.body;
       newTransaction = new Transaction(null, null, null, transactionJson);
       pool.addTransaction(newTransaction);
@@ -299,7 +305,7 @@ function initialiceRest() {
   */
   app.post('/addUserTransaction', function (req, res) {
     try {
-      console.log("Adding new user transaction")
+      console.log("[REST] Adding new user transaction")
       transactionJson = req.body;
       newTransaction = new Transaction(null, null, null, transactionJson);
       pool.addTransaction(newTransaction);
@@ -308,11 +314,11 @@ function initialiceRest() {
       nodes.forEach((node, i) => {
         try {
           if (node.getId() != selfNode.getId()) {
-            console.log("Sending transaction to " + node.getId());
+            console.log("[REST] Sending transaction to " + node.getId());
             Petitions.addTransaction(node.getIp(), node.getPort(), newTransaction);
           }
         } catch (err) {
-          console.log("Error sending Transaction to " + node.getId());
+          console.log("[REST] Error sending Transaction to " + node.getId());
         }
       });
 
@@ -356,20 +362,25 @@ async function mine() {
     attemp += 1;
     console.log("\n## Mine attemp: " + attemp);
     console.log("\nESTADO CADENA DE BLOQUES: \n" + blockChain.getBlockChainInfo());
-    console.log("ESTADO POOL TRANSACCIONES: " + pool.getPoolInfo())
-    console.log("Nodos vecinos: ", nodes)
-    console.log("")
+    console.log("ESTADO POOL TRANSACCIONES: " + pool.getPoolInfo());
+    console.log("Nodos vecinos: ", nodes);
+    console.log("");
 
 
     try {
 
       // Se seleccionan las transacciones y se intenta minar un bloque
-      let transactionsToAdd = ["tr1", "tr2"]; // TODO: toma de transacciones
+      // TODO: bloquear aqui con semaforo hasta que se eliminen las transacciones ya añadidas
+      let rewardTransaction = new Transaction(selfNode.getId(), selfNode.getId(), 100);
+      rewardTransaction.sign(nodeKeys.privateKey);
+      let transactionsToAdd = pool.getTransactionsToMine();
+      transactionsToAdd.push(rewardTransaction);
+
       let lastHash = blockChain.getLastHash();
 
-      mineFlag = true;
-      let blockAttemp;
-      let triedHash = "";
+      mineFlag = true; // Flag indica si otro bloque minó y tenemos que desechar este intento
+      let blockAttemp; // Bloque que se intenta minar
+      let triedHash = "";  // hash de blockAttemp
       let prefix = "0".repeat(difficulty);
       let startMiningTime = new Date().getTime();
 
@@ -380,19 +391,19 @@ async function mine() {
         triedHash = blockAttemp.getHash();
       }
 
-      // Si se encuenrta un bloque válido
+      // Si se encuenrta un bloque válido se promueve para añadir
       if (triedHash.startsWith(prefix) && mineFlag) {
-        let endMiningTime = new Date().getTime();
 
+        let endMiningTime = new Date().getTime();
         let miningCompleteMsg = ""+
           "\nFound a valid Block! starting proof of work" +
           "\nTime: " + (endMiningTime - startMiningTime)/1000 + "s" +
           "\nDifficulty: " + difficulty +
-          "\nHash: " + triedHash + "\n";
+          "\nHash: " + triedHash + "";
         console.log(miningCompleteMsg);
 
         result = blockChain.addBlock(blockAttemp);
-        // TODO: controlar error
+        // TODO: controlar si se añade despues de preguntar, axios a varios
         nodes.forEach((node, i) => {
           try {
             if (node.getId() != selfNode.getId()) {

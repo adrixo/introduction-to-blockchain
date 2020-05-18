@@ -2,6 +2,32 @@
 
 var CryptoModule = require('./CryptoModule');
 
+/*
+ * Un arbol jerárquico puede ser entendido como un heap en el que los hijos se corresponden a los padres segun
+ * [1,2i,2d, 3ii,3id,3di,3dd,4iii,4iid,4idi,4idd,...]
+ * y por lo tanto:
+ * - padre = hijo / 2
+ * -hijos = padre * 2 ó (padre*2)+1
+*/
+function calcMerkleRoot(transactions) {
+  if (transactions.length == 1)
+    return CryptoModule.getHash(transactions[0].stringify());
+
+  let leftTransactions = []
+  let rightTransactions = []
+  transactions.forEach((tr, i) => {
+    if ( i < (transactions.length)/2 )
+      leftTransactions.push(tr)
+    else
+      rightTransactions.push(tr)
+  });
+
+  let leftSonHash = calcMerkleRoot(leftTransactions);
+  let rightSonHash = calcMerkleRoot(rightTransactions);
+
+  return CryptoModule.getHash(leftSonHash + rightSonHash);
+}
+
 class Block {
 
 /* Métodos */
@@ -22,35 +48,9 @@ class Block {
       this.transactions = transactions;
       this.nonce = nonce;
       this.timestamp = Date.now();
-      this.raizArbolMerkle = this.getMerkleRoot();
+      this.raizArbolMerkle = calcMerkleRoot(this.transactions);
       this.hash = this.calculateHash();
     }
-  }
-
-/*
- * Un arbol jerárquico puede ser entendido como un heap en el que los hijos se corresponden a los padres segun
- * [1,2i,2d, 3ii,3id,3di,3dd,4iii,4iid,4idi,4idd,...]
- * y por lo tanto:
- * - padre = hijo / 2
- * -hijos = padre * 2 ó (padre*2)+1
-*/
-  getMerkleRoot(transactions) {
-    if (transactions.length == 1)
-      return CryptoModule.getHash(transactions[0]);
-
-    let leftTransactions = []
-    let rightTransactions = []
-    transactions.forEach((tr, i) => {
-      if ( i < (transactions.length)/2 )
-        leftTransactions.push(tr)
-      else
-        rightTransactions.push(tr)
-    });
-
-    let leftSonHash = this.getMerkleRoot(leftTransactions);
-    let rightSonHash = this.getMerkleRoot(rightTransactions);
-
-    return CryptoModule.getHash(leftSonHash + rightSonHash);
   }
 
   calculateHash() {

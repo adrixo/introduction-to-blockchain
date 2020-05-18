@@ -71,18 +71,9 @@ class Transaction {
     }
     return jsonTransaction;
   }
-  
+
   stringify() {
     return JSON.stringify(this);
-    /*
-    return ""
-     + this.senderPublicKey + ","
-     + this.receiverPublicKey + ","
-     + this.digitalSign + ","
-     + this.timestamp + ","
-     + this.amount + ","
-     + this.hash;
-     */
   }
 
 /*

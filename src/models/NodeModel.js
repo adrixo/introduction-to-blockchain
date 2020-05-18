@@ -5,15 +5,17 @@ class NodeModel {
 /* Métodos */
   constructor (ip, port, jsonNode="") {
     /*
-    * Construye el bloque a partir de una string
+    * Construye el nodo a partir de un json
     */
     if (jsonNode != "") {
       let json = jsonNode;
       this.ip = json.ip;
       this.port = json.port;
+      this.id = "" + this.ip + ":" + this.port;
     } else {
       this.ip = ip;
       this.port = port;
+      this.id = "" + this.ip + ":" + this.port;
     }
   }
 
@@ -43,6 +45,14 @@ class NodeModel {
 
   setPort(port) {
     this.port = port;
+  }
+
+  getId() {
+    return this.id;
+  }
+
+  setId(id) {
+    this.id = id;
   }
 }
 

@@ -1,5 +1,43 @@
 #!/usr/bin/node
 
+var ip = require("ip");
+
+// Si se le pasa parámetros ipMaster:puertoMaster entiende que no es master
+// Si no, entiende que es nodo master
+var args = process.argv.splice(2)
+
+var isMasterNode;
+var masterNodeAddr;
+var masterNodePort;
+var nodeAddr = ip.address();
+var nodePort;
+
+if (args.length!=3) {
+  console.log("Usage: [M|S] ip:port workingPort");
+  return;
+} else {
+  masterNodeAddr = args[1].split(':')[0];
+  masterNodePort = args[1].split(':')[1];
+  nodePort = args[2];
+
+  if (args[0] == 'M'){
+    if (nodeAddr != masterNodeAddr) {
+      console.log("Given Master ip doesn fit!")
+      return;
+    }
+    isMasterNode = true;
+    nodePort = masterNodePort;
+    console.log("Starting master node at " + masterNodeAddr +':'+ masterNodePort)
+  } else if (args[0] == 'S'){
+    isMasterNode = false;
+    console.log("Starting slave node at " + nodeAddr +':'+ nodePort);
+    console.log("Master node at " + masterNodeAddr +':'+ masterNodePort);
+  } else {
+    console.log("Invalid argument")
+    return;
+  }
+}
+
 const express = require("express");
 const bodyParser = require('body-parser');
 var Block = require('../models/Block');
@@ -35,68 +73,56 @@ var nodes = [];
 * Si no recibe ninguno se declara como master y se selecciona como puerto 8005
 * TODO: contemplar: si no puede conectarse como master es que el puerto está bindeado y el servidor no responde
 */
-var myPort = 0;
-var masterNode = true;
 async function initialiceNode() {
-  console.log("Searching for nodes...")
-  for (i = myPort; i < 8010; i++) {
+  console.log("Searching for nodes...");
+  if (isMasterNode) {
+    // Si esta instancia es la del nodo maestro
+    nodes.push(masterNodePort);
+    // Como nodo master,  crea el bloque genesis o lo carga de base de datos/fichero
+    let genesis = new Block("genesis", 1111, ["trGA", "trGB"]);
+    blockChain.addBlock(genesis);
+  }
+
+  if (!isMasterNode) {
     try {
-      let getNodesResponse = await Petitions.getNodes(i);
+      // Si esta instancia es la de un nodo esclavo
+      let getNodesResponse = await Petitions.getNodes(masterNodePort);
       nodes = getNodesResponse.data.nodes;
       console.log("My neighbor nodes are: ", nodes);
 
-      nodes.forEach((nodeId, i) => {
-        if (myPort<=nodeId)
-          myPort = nodeId + 1;
-      });
-      console.log("My ID/Port is: " + myPort)
-      masterNode = false;
-      break;
-    } catch (err) {
-      // Si no se encuentra
-      myPort = 8005;
-      masterNode = true;
-    }
-  }
-
-  if (myPort == 8005) {
-    console.log("Promoted to master")
-    nodes.push(myPort);
-    // Es el nodo master,  crea el bloque genesis o lo carga de base de datos/fichero
-    let genesis = new Block("genesis", 1111, ["trGA", "trGB"]);
-    blockChain.addBlock(genesis);
-  } else {
-    try {
       // 1. Se pide la cadena de bloques
-      let getBlockChainResponse = await Petitions.getBlockChain(nodes[0]);
+      let getBlockChainResponse = await Petitions.getBlockChain(masterNodePort);
       let newBlockChain = getBlockChainResponse.data;
       blockChain = new BlockChain(jsonBlockChain=newBlockChain);
 
       // 2. Se pide la Pool transacciones
-      let getPoolResponse = await Petitions.getPool(nodes[0]);
+      let getPoolResponse = await Petitions.getPool(masterNodePort);
       let newPool = getPoolResponse.data;
       pool = new Pool(pool=newPool);
 
       // 3. Se informa de nuevo nodo
       nodes.forEach((nodeId, i) => {
-        Petitions.addNode(nodeId, myPort);
+        Petitions.addNode(nodeId, nodePort);
       });
 
-      nodes.push(myPort);
+      nodes.push(nodePort);
     } catch (err) {
       console.log(err);
     }
   }
   console.log("Initialiced");
 }
-/***************************FIN INICIALIZACION****************************/
 
+
+/************************************************************************/
+/************************* BLOCKCHAIN API REST **************************/
+/************************************************************************/
 function initialiceRest() {
-  app.listen(myPort, () => {
-   console.log("Starting express at localhost:"+myPort);
+  app.listen(nodePort, () => {
+   console.log("Starting express at "+nodeAddr+":"+nodePort);
   });
 
-  /**********RESPUESTAS*************/
+  /*TODO: *********Mensajes respuesta*************/
   var notFound = {
    error: true,
    codigo: 404,
@@ -128,6 +154,7 @@ function initialiceRest() {
   */
   app.get('/getNodes', function (req, res) {
       let nodesJson = {nodes: nodes}
+      console.log(nodesJson)
       res.send(nodesJson);
   });
 
@@ -256,7 +283,7 @@ function initialiceRest() {
       // Ademas, notificamos al resto
       nodes.forEach((node, i) => {
         try {
-          if (node != myPort) {
+          if (node != nodePort) {
             console.log("Sending transaction to " + node);
             Petitions.addTransaction(node, newTransaction);
           }
@@ -293,6 +320,9 @@ async function delay(delayInms) {
   });
 }
 
+/************************************************************************/
+/*************************** Lógica del nodo ****************************/
+/************************************************************************/
 async function mine() {
 
   let attemp = 0;
@@ -340,7 +370,7 @@ async function mine() {
         // TODO: controlar error
         nodes.forEach((node, i) => {
           try {
-            if (node != myPort) {
+            if (node != nodePort) {
               console.log("Notifying " + node);
               Petitions.addBlock(node, blockAttemp);
             }

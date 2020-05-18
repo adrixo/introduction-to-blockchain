@@ -11,6 +11,7 @@ var masterNodeAddr;
 var masterNodePort;
 var nodeAddr = ip.address();
 var nodePort;
+var selfNode;
 
 if (args.length!=3) {
   console.log("Usage: [M|S] ip:port workingPort");
@@ -77,7 +78,8 @@ async function initialiceNode() {
   console.log("Searching for nodes...");
   if (isMasterNode) {
     // Si esta instancia es la del nodo maestro
-    nodes.push(masterNodePort);
+    selfNode = new NodeModel(nodeAddr, nodePort);
+    nodes.push(selfNode);
     // Como nodo master,  crea el bloque genesis o lo carga de base de datos/fichero
     let genesis = new Block("genesis", 1111, ["trGA", "trGB"]);
     blockChain.addBlock(genesis);
@@ -86,26 +88,35 @@ async function initialiceNode() {
   if (!isMasterNode) {
     try {
       // Si esta instancia es la de un nodo esclavo
-      let getNodesResponse = await Petitions.getNodes(masterNodePort);
-      nodes = getNodesResponse.data.nodes;
+      let getNodesResponse = await Petitions.getNodes(masterNodeAddr, masterNodePort);
+      let nodesJson = getNodesResponse.data.nodes;
+
+      nodesJson.forEach((nJson, i) => {
+        let auxNode = new NodeModel(null, null, jsonNode=nJson);
+        nodes.push(auxNode);
+      });
+
       console.log("My neighbor nodes are: ", nodes);
 
       // 1. Se pide la cadena de bloques
-      let getBlockChainResponse = await Petitions.getBlockChain(masterNodePort);
+      let getBlockChainResponse = await Petitions.getBlockChain(masterNodeAddr, masterNodePort);
       let newBlockChain = getBlockChainResponse.data;
       blockChain = new BlockChain(jsonBlockChain=newBlockChain);
 
       // 2. Se pide la Pool transacciones
-      let getPoolResponse = await Petitions.getPool(masterNodePort);
+      let getPoolResponse = await Petitions.getPool(masterNodeAddr, masterNodePort);
       let newPool = getPoolResponse.data;
       pool = new Pool(pool=newPool);
 
+      selfNode = new NodeModel(nodeAddr, nodePort);
+      let selfNodeJson = selfNode.getJSON();
+
       // 3. Se informa de nuevo nodo
-      nodes.forEach((nodeId, i) => {
-        Petitions.addNode(nodeId, nodePort);
+      nodes.forEach((node, i) => {
+        Petitions.addNode(node.ip, node.port, selfNodeJson);
       });
 
-      nodes.push(nodePort);
+      nodes.push(selfNode);
     } catch (err) {
       console.log(err);
     }
@@ -153,24 +164,34 @@ function initialiceRest() {
   * Devuelve la lista de nodos actualmente en la red
   */
   app.get('/getNodes', function (req, res) {
-      let nodesJson = {nodes: nodes}
-      console.log(nodesJson)
-      res.send(nodesJson);
+    let jsonNodes = [];
+
+    nodes.forEach((n, i) => {
+      let jsonNode = n.getJSON();
+      jsonNodes.push(jsonNode);
+    });
+
+    let nodesJson = {nodes: jsonNodes};
+    res.send(nodesJson);
   });
 
   /* @post
   * Da de alta un nuevo nodo en la red
   */
   app.post('/newNode', function (req, res) {
-    console.log("New node at: ", req.body.id);
+    let newNodeJson = req.body;
+    let newNode = new NodeModel(null, null, jsonNode=newNodeJson);
+
     let repeated = false;
     nodes.forEach((node, i) => {
-      if (node == req.body)
+      if (node.getId() == newNode.getId())
         repeated = true;
     });
 
-    if (!repeated)
-      nodes.push(req.body.id);
+    if (!repeated){
+      nodes.push(newNode);
+      console.log("New node at "+newNode.getIp()+':'+newNode.getPort());
+    }
 
     res.send("Done");
   });
@@ -179,10 +200,13 @@ function initialiceRest() {
   * Da de alta un nodo
   */
   app.post('/deleteNode', function (req, res) {
-    console.log("Down node at: ", req.body.id);
+    let delNodeJson = req.body;
+    let delNode = new NodeModel(null, null, jsonNode=delNodeJson);
+
     nodes.forEach((node, i) => {
-      if (node == req.body) {
+      if (node.getId() == delNode.getId()) {
         nodes.splice(i, 1);
+        console.log("Node down at "+delNode.getIp()+':'+delNode.getPort());
         break
       }
     });
@@ -283,12 +307,12 @@ function initialiceRest() {
       // Ademas, notificamos al resto
       nodes.forEach((node, i) => {
         try {
-          if (node != nodePort) {
-            console.log("Sending transaction to " + node);
-            Petitions.addTransaction(node, newTransaction);
+          if (node.getId() != selfNode.getId()) {
+            console.log("Sending transaction to " + node.getId());
+            Petitions.addTransaction(node.getIp(), node.getPort(), newTransaction);
           }
         } catch (err) {
-          console.log("Error sending Transaction to " + node)
+          console.log("Error sending Transaction to " + node.getId());
         }
       });
 
@@ -330,10 +354,11 @@ async function mine() {
   while(true) {
     await delay(1500);
     attemp += 1;
-    console.log("Mine attemp: " + attemp);
-    console.log("\n\nESTADO CADENA DE BLOQUES: \n" + blockChain.getBlockChainInfo());
+    console.log("\n## Mine attemp: " + attemp);
+    console.log("\nESTADO CADENA DE BLOQUES: \n" + blockChain.getBlockChainInfo());
     console.log("ESTADO POOL TRANSACCIONES: " + pool.getPoolInfo())
     console.log("Nodos vecinos: ", nodes)
+    console.log("")
 
 
     try {
@@ -370,12 +395,12 @@ async function mine() {
         // TODO: controlar error
         nodes.forEach((node, i) => {
           try {
-            if (node != nodePort) {
-              console.log("Notifying " + node);
-              Petitions.addBlock(node, blockAttemp);
+            if (node.getId() != selfNode.getId()) {
+              console.log("Sending block to  " + node.getId());
+              Petitions.addBlock(node.getIp(), node.getPort(), blockAttemp);
             }
           } catch (err) {
-            console.log("Error sending block to " + node)
+            console.log("Error sending block to " + node.getId())
           }
         });
 

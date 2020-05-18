@@ -2,40 +2,39 @@ var axios = require('axios');
 
 class Petitions {
 
-  static getNodes(port) {
-    return axios.get('http://localhost:'+port+'/getNodes');
+  static getNodes(ip, port) {
+    return axios.get('http://'+ip+':'+port+'/getNodes');
   }
 
-  static addNode(port, node) {
-    let jsonNode = {'id': node};
-    axios.post('http://localhost:'+port+'/newNode', jsonNode);
+  static addNode(ip, port, node) {
+    axios.post('http://'+ip+':'+port+'/newNode', node);
   }
 
-  static deleteNode(port, node) {
+  static deleteNode(ip, port, node) {
     return true;
   }
 
-  static getBlockChain(port) {
-    return axios.get('http://localhost:'+port+'/getBlockChain');
+  static getBlockChain(ip, port) {
+    return axios.get('http://'+ip+':'+port+'/getBlockChain');
   }
 
-  static addBlock(port, block) {
+  static addBlock(ip, port, block) {
     var jsonBlock = block.getJSON();
-    return axios.post('http://localhost:'+port+'/addBlock', jsonBlock);
+    return axios.post('http://'+ip+':'+port+'/addBlock', jsonBlock);
   }
 
-  static getPool(port) {
-    return axios.get('http://localhost:'+port+'/getPool');
+  static getPool(ip, port) {
+    return axios.get('http://'+ip+':'+port+'/getPool');
   }
 
-  static addTransaction(port, transaction) {
+  static addTransaction(ip, port, transaction) {
     let jsonTransaction = transaction.getJSON();
-    return axios.post('http://localhost:'+port+'/addTransaction', jsonTransaction);
+    return axios.post('http://'+ip+':'+port+'/addTransaction', jsonTransaction);
   }
 
-  static addUserTransaction(port, transaction) {
+  static addUserTransaction(ip, port, transaction) {
     let jsonTransaction = transaction.getJSON();
-    return axios.post('http://localhost:'+port+'/addUserTransaction', jsonTransaction);
+    return axios.post('http://'+ip+':'+port+'/addUserTransaction', jsonTransaction);
   }
 
 }

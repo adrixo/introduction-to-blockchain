@@ -1,9 +1,9 @@
 #!/usr/bin/node
 const express = require("express");
 const bodyParser = require('body-parser');
-var Block = require('../models/Block');
-var Transaction = require('../models/Transaction');
-var CryptoModule = require('../models/CryptoModule');
+var Block = require('../../models/Block');
+var Transaction = require('../../models/Transaction');
+var CryptoModule = require('../../models/CryptoModule');
 
 const app = express();
 

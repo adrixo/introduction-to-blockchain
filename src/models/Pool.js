@@ -27,7 +27,7 @@ class Pool {
   }
 
   addTransaction(transaction) {
-    if (checkTransaction(transaction)){
+    if (this.checkTransaction(transaction)){
       this.pool.push(transaction);
       return true;
     }
@@ -55,6 +55,11 @@ class Pool {
     return {pool: this.pool}
   }
 
+  getPoolInfo() {
+    let poolInfo = "" +
+      "Transactions: " + this.pool.length;
+    return poolInfo;
+  }
 
 /* Getter y setter*/
 

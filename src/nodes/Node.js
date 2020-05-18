@@ -19,7 +19,7 @@ var setupFinished = false;
 //Indica al proceso si debe seguir minando
 // Se pone a false si se añade un bloque a la cadena para que reconsidere transacciones
 var mineFlag = false;
-var difficulty = 3;
+var difficulty = 4;
 var blockChain = new BlockChain();
 var pool = new Pool();
 
@@ -95,7 +95,12 @@ app.get('/getBlockChain', function (req, res) {
 });
 
 /* @post
-* Recibe como parametro un bloque y lo instancia localmente como objeto block
+* Recibe como parametro un bloque propuesto para cadena
+*  y lo instancia localmente como objeto block
+*  - Si es un bloque válido en la cadena
+*     Deja de minar
+*     Elimina las transacciones
+*     Lo añade
 */
 app.post('/addBlock', function (req, res) {
 
@@ -109,6 +114,7 @@ app.post('/addBlock', function (req, res) {
       if( blockChain.validateNewBlockCongruency(newBlock) ) {
         // Se añade el bloque y se responde
         blockChain.addBlock(newBlock);
+        // TODO: Se eliminan las transacciones correspondientes al bloque
         res.send(blockAdded);
 
       } else {
@@ -143,13 +149,13 @@ app.get('/getPool', function (req, res) {
 /* @post
 * Añade una nueva transaccion
 */
-app.get('/addTransaction', function (req, res) {
+app.post('/addTransaction', function (req, res) {
   try {
     console.log("Adding transaction")
     transactionJson = req.body;
     newTransaction = new Transaction(null, null, null, transactionJson);
-    pool.transactionJson(newTransaction);
-    res.send(jsonPool);
+    pool.addTransaction(newTransaction);
+    res.send("transaccion anadida");
   } catch (err) {
     console.log(err);
     res.send(error);
@@ -158,10 +164,12 @@ app.get('/addTransaction', function (req, res) {
 
 /* @post
 * Elimina una transaccion
+// TODO; no sería necesario si las transacciones se eliminan obteniendolas de un bloque añadido
+// De hecho sería preferible porque se reduce el n mensajes y complejidad
 */
 app.get('/deleteTransaction', function (req, res) {
-  // TODO: debe ser array transacciones
-  res.send("Transaction deleted");
+  let transactionArray = req.body;
+  res.send("Transactions deleted");
 });
 
 
@@ -180,10 +188,11 @@ async function run() {
   let attemp = 0;
   // TODO: setupFinished, se espera hasta que sea falso, esto es hasta que sea master y tenga cadena, o reciba nodos vecinos y su cadenas
   while(true) {
-    await delay(15000);
+    await delay(1500);
     attemp += 1;
     console.log("Mine attemp: " + attemp);
-    console.log(blockChain.getBlockChainInfo());
+    console.log("\n\nESTADO CADENA DE BLOQUES: \n" + blockChain.getBlockChainInfo());
+    console.log("ESTADO POOL TRANSACCIONES: " + pool.getPoolInfo())
 
     try {
 
@@ -195,17 +204,28 @@ async function run() {
       let blockAttemp;
       let triedHash = "";
       let prefix = "0".repeat(difficulty);
+      let startMiningTime = new Date().getTime();
+
       while( !triedHash.startsWith(prefix) && mineFlag) {
-        let nonce = Math.ceil(Math.random() * 10000);
+        await delay(1);
+        let nonce = Math.ceil(Math.random() * 100000);
         blockAttemp = new Block(lastHash, nonce, transactionsToAdd);
         triedHash = blockAttemp.getHash();
       }
 
       // Si se encuenrta un bloque válido
       if (triedHash.startsWith(prefix) && mineFlag) {
-        console.log("Found a valid Block! starting proof of work")
+        let endMiningTime = new Date().getTime();
+
+        let miningCompleteMsg = ""+
+          "\nFound a valid Block! starting proof of work" +
+          "\nTime: " + (endMiningTime - startMiningTime)/1000 + "s" +
+          "\nDifficulty: " + difficulty +
+          "\nHash: " + triedHash + "\n";
+        console.log(miningCompleteMsg);
+
         result = blockChain.addBlock(blockAttemp);
-        console.log(result) // TODO: controlar error
+        // TODO: controlar error
         // notificamos a los demas nodos
         // lo añadimos a la cadena de bloques
         // eliminamos transacciones del pool

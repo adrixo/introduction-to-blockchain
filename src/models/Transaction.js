@@ -60,6 +60,18 @@ class Transaction {
      + this.amount;
   }
 
+  getJSON() {
+    let jsonTransaction = {
+      "senderPublicKey": this.senderPublicKey,
+      "receiverPublicKey": this.receiverPublicKey,
+      "amount": this.amount,
+      "digitalSign": this.digitalSign,
+      "timestamp": this.timestamp,
+      "hash": this.hash
+    }
+    return jsonTransaction;
+  }
+  
   stringify() {
     return JSON.stringify(this);
     /*

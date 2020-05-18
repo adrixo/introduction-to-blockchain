@@ -1,10 +1,19 @@
 'use strict';
+var Block = require('./Block');
 
 class BlockChain {
 
 /* Métodos */
-  constructor (blockChain=[]) {
-    this.blockChain = blockChain;
+  constructor (jsonBlockChain="") {
+    this.blockChain = [];
+
+    if (jsonBlockChain != "") {
+      jsonBlockChain.forEach((jsonBlock, i) => {
+        let newBlock = new Block(null, null, null, jsonBlock);
+        this.blockChain.push(newBlock);
+      });
+
+    }
   }
 
   getBlockChainInfo() {

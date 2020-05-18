@@ -1,9 +1,9 @@
 #!/usr/bin/node
 
 var axios = require('axios');
-var Block = require('../models/Block');
-var Transaction = require('../models/Transaction');
-var CryptoModule = require('../models/CryptoModule');
+var Block = require('../../models/Block');
+var Transaction = require('../../models/Transaction');
+var CryptoModule = require('../../models/CryptoModule');
 
 // Peticion simple
 /*

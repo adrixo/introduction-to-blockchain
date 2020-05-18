@@ -29,7 +29,13 @@ class Petitions {
   }
 
   static addTransaction(port, transaction) {
-    return true;
+    let jsonTransaction = transaction.getJSON();
+    return axios.post('http://localhost:'+port+'/addTransaction', jsonTransaction);
+  }
+
+  static addUserTransaction(port, transaction) {
+    let jsonTransaction = transaction.getJSON();
+    return axios.post('http://localhost:'+port+'/addUserTransaction', jsonTransaction);
   }
 
 }

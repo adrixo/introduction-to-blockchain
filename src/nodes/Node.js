@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 var Block = require('../models/Block');
 var Transaction = require('../models/Transaction');
 var BlockChain = require('../models/BlockChain');
+var NodeModel = require('../models/NodeModel');
 var Pool = require('../models/Pool');
 var CryptoModule = require('../models/CryptoModule');
 var Petitions = require('./petitions/Petitions');
@@ -151,7 +152,15 @@ function initialiceRest() {
   * Da de alta un nodo
   */
   app.post('/deleteNode', function (req, res) {
-    res.send("byebye");
+    console.log("Down node at: ", req.body.id);
+    nodes.forEach((node, i) => {
+      if (node == req.body) {
+        nodes.splice(i, 1);
+        break
+      }
+    });
+
+    res.send("Done");
   });
 
   /************************ Peticiones de bloque *****************************/
@@ -169,7 +178,7 @@ function initialiceRest() {
   * Recibe como parametro un bloque propuesto para cadena
   *  y lo instancia localmente como objeto block
   *  - Si es un bloque válido en la cadena
-  *     Deja de minar
+  *     Deja de minar (desactivar mineFlag)
   *     Elimina las transacciones
   *     Lo añade
   */
@@ -239,11 +248,23 @@ function initialiceRest() {
   */
   app.post('/addUserTransaction', function (req, res) {
     try {
-      console.log("Adding transaction")
+      console.log("Adding new user transaction")
       transactionJson = req.body;
       newTransaction = new Transaction(null, null, null, transactionJson);
       pool.addTransaction(newTransaction);
+
       // Ademas, notificamos al resto
+      nodes.forEach((node, i) => {
+        try {
+          if (node != myPort) {
+            console.log("Sending transaction to " + node);
+            Petitions.addTransaction(node, newTransaction);
+          }
+        } catch (err) {
+          console.log("Error sending Transaction to " + node)
+        }
+      });
+
       res.send("transaccion anadida");
     } catch (err) {
       console.log(err);

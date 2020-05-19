@@ -11,7 +11,13 @@ class Pool {
 /* Constructor
 */
   constructor (pool=[]) {
-    this.pool = pool;
+    this.pool = [];
+
+    pool.forEach((trJson, i) => {
+      let newTransaction = new Transaction(null, null, null, trJson);
+      this.pool.push(newTransaction);
+    });
+
   }
 
   checkTransaction(transaction) {

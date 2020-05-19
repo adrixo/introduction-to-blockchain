@@ -120,7 +120,6 @@ async function initialiceNode() {
       // 2. Se pide la Pool transacciones
       let getPoolResponse = await Petitions.getPool(masterNodeAddr, masterNodePort);
       let newPool = getPoolResponse.data;
-      // TODO: instanciar como transacciones
       pool = new Pool(pool=newPool);
 
       // 3. Se pide las carteras con las que se esta trabajando
@@ -136,7 +135,11 @@ async function initialiceNode() {
 
       // 3. Se informa de nuevo nodo
       nodes.forEach((node, i) => {
-        Petitions.addNode(node.ip, node.port, selfNodeJson);
+        try {
+          Petitions.addNode(node.ip, node.port, selfNodeJson);
+        } catch (err) {
+          console.log("[STARTUP] Nodo caido " + node.id)
+        }
       });
 
       nodes.push(selfNode);
@@ -319,8 +322,8 @@ function initialiceRest() {
   app.post('/addTransaction', function (req, res) {
     try {
       console.log("[REST] Adding transaction")
-      transactionJson = req.body;
-      newTransaction = new Transaction(null, null, null, jsonTransaction=transactionJson);
+      let transactionJson = req.body;
+      let newTransaction = new Transaction(null, null, null, jsonTransaction=transactionJson);
       pool.addTransaction(newTransaction);
       console.log("[REST] " + pool.getPoolInfo())
       res.send("transaccion anadida");
@@ -336,8 +339,12 @@ function initialiceRest() {
   app.post('/addUserTransaction', function (req, res) {
     try {
       console.log("[REST] Adding new user transaction")
-      transactionJson = req.body;
-      newTransaction = new Transaction(null, null, null, transactionJson);
+      let transactionJson = req.body;
+      let newTransaction = new Transaction(null, null, null, jsonTransaction=transactionJson);
+
+      // Comprobar que tiene para sacar saldo,
+      // en conjunción con otras posibles transacciones anteriores en la cadena de bloques
+
       pool.addTransaction(newTransaction);
       console.log("[REST] " + pool.getPoolInfo())
 
@@ -411,10 +418,16 @@ async function mine() {
   while(true) {
     await delay(1500);
     attemp += 1;
+
+    let stringNodes = []
+    nodes.forEach((n, i) => {
+      stringNodes.push(n.getId())
+    });
+
     console.log("\n[Mine] ## Mine attemp: " + attemp);
     console.log("[Mine] ESTADO CADENA DE BLOQUES: " + blockChain.getBlockChainInfo());
     console.log("[Mine] ESTADO POOL TRANSACCIONES: " + pool.getPoolInfo());
-    console.log("[Mine] Nodos vecinos: ", nodes);
+    console.log("[Mine] Nodos vecinos: ", stringNodes);
     console.log("");
 
 
@@ -470,7 +483,7 @@ async function mine() {
         // Se eliminan del pool las transacciones correspondientes al bloque
         let processedTransactions = blockAttemp.getTransactions();
         processedTransactions.forEach((tr, i) => {
-          console.log("[REST] Deleting transaction: " + tr.getHash());
+          console.log("[Mine] Deleting transaction: " + tr.getHash());
           pool.deleteTransaction(tr);
         });
 

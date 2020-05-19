@@ -66,8 +66,6 @@ if (args.length!=3) {
       let newWallet = new WalletRegister(uKeys.publicKey, 100);
       wallets.push(newWallet);
     });
-    console.log(wallets);
-
 
   } else if (args[0] == 'S'){
     isMasterNode = false;
@@ -122,7 +120,16 @@ async function initialiceNode() {
       // 2. Se pide la Pool transacciones
       let getPoolResponse = await Petitions.getPool(masterNodeAddr, masterNodePort);
       let newPool = getPoolResponse.data;
+      // TODO: instanciar como transacciones
       pool = new Pool(pool=newPool);
+
+      // 3. Se pide las carteras con las que se esta trabajando
+      let getWalletsResponse = await Petitions.getWallets(masterNodeAddr, masterNodePort);
+      let walletsJson = getWalletsResponse.data.wallets;
+      walletsJson.forEach((w, i) => {
+        let newWalletRegister = new WalletRegister(null, null, jsonWalletRegister=w);
+        wallets.push(newWalletRegister);
+      });
 
       selfNode = new NodeModel(nodeAddr, nodePort);
       let selfNodeJson = selfNode.getJSON();

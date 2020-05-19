@@ -94,8 +94,9 @@ class Transaction {
 */
   validate() {
     return true;
-
-    if ( !CryptoModule.validateSign(this.senderPublicKey, this.digitalSign) )
+    
+    let toSign = this.transactionToString_toSign();
+    if ( !CryptoModule.validateSign(this.senderPublicKey, this.digitalSign, toSign) )
       return false;
 
     let toHash = this.transactionToString_toHash();

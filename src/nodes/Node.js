@@ -1,4 +1,5 @@
 #!/usr/bin/node
+const cors = require('cors');
 const express = require("express");
 const bodyParser = require('body-parser');
 var Block = require('../models/Block');
@@ -50,6 +51,7 @@ if (args.length!=3) {
 
 const app = express();
 
+app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 

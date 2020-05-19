@@ -11,9 +11,7 @@ class CryptoModule {
       },
       privateKeyEncoding: {
         type: 'pkcs8',
-        format: 'pem',
-        cipher: 'aes-256-cbc',
-        passphrase: passphrase
+        format: 'pem'
       }
     });
     return {"publicKey": publicKey, "privateKey": privateKey}
@@ -70,15 +68,15 @@ class CryptoModule {
   }
 
 // Valida la firma
-  static validateSign (publicKey, input) {
+  static validateSign (publicKey, signed, plain) {
     publicKey = publicKey.toString('ascii');
 
     let verifier = crypto.createVerify('RSA-SHA256');
-    verifier.update(input, 'ascii');
+    verifier.update(plain, 'ascii');
 
     let publicKeyBuf = new Buffer(publicKey, 'ascii')
-    let inputBuf = new Buffer(input, 'hex')
-    let result = verifier.verify(publicKeyBuf, inputBuf);
+    let signedBuf = new Buffer(signed, 'hex')
+    let result = verifier.verify(publicKeyBuf, signedBuf);
 
     return result;
   }

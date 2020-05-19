@@ -21,8 +21,8 @@
                                 clearable>
                         </v-text-field>
                     </v-col>
-                
-                
+
+
                     <v-col class="field" cols="6">
                         <v-text-field
                                 v-model="claveEmisor"
@@ -62,7 +62,7 @@
                         </v-btn>
                     </v-col>
                 </v-row>
-                
+
             </v-layout>
         </v-container>
     </div>
@@ -96,7 +96,7 @@ export default {
                 "timestamp": "",
                 "hash": ""
             }
-            
+
             console.log('http://'+this.ip+':'+this.puerto+'/addTransaction');
             axios.post('http://'+this.ip+':'+this.puerto+'/addTransaction', jsonTransaction)
                 .then(function (response) {
@@ -112,7 +112,7 @@ export default {
                 });
         }
     }
-    
+
 }
 </script>
 

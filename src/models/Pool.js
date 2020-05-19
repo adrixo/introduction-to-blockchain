@@ -15,7 +15,7 @@ class Pool {
   }
 
   checkTransaction(transaction) {
-    if (transaction.validate())
+    if (!transaction.validate())
       return false;
 
     this.pool.forEach((tr, i) => {
@@ -39,9 +39,6 @@ class Pool {
 *
 */
   deleteTransaction(transaction) {
-    if (transaction.validate())
-      return false;
-
     this.pool.forEach((tr, i) => {
       if (transaction.getHash() == tr.getHash())
         this.pool.splice(i, 1); // TODO: testear
@@ -57,7 +54,7 @@ class Pool {
 
   getPoolInfo() {
     let poolInfo = "" +
-      "Transactions: " + this.pool.length;
+      "Transactions in Pool: " + this.pool.length;
     return poolInfo;
   }
 

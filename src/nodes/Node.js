@@ -250,7 +250,16 @@ function initialiceRest() {
           mineFlag = false;
           // Se añade el bloque y se responde
           blockChain.addBlock(newBlock);
-          // TODO: Se eliminan las transacciones correspondientes al bloque
+          // Se eliminan del pool las transacciones correspondientes al bloque
+          let processedTransactions = newBlock.getTransactions();
+          processedTransactions.forEach((tr, i) => {
+            let deletedTransaction = new Transaction(null, null, null, jsonTransaction=tr);
+            console.log("[REST] Deleting transaction: " + deletedTransaction.getHash());
+            pool.deleteTransaction(deletedTransaction);
+          });
+
+          // Se elimina/suma dinero de cada usuario
+
           res.send(blockAdded);
 
         } else {
@@ -291,8 +300,9 @@ function initialiceRest() {
     try {
       console.log("[REST] Adding transaction")
       transactionJson = req.body;
-      newTransaction = new Transaction(null, null, null, transactionJson);
+      newTransaction = new Transaction(null, null, null, jsonTransaction=transactionJson);
       pool.addTransaction(newTransaction);
+      console.log("[REST] " + pool.getPoolInfo())
       res.send("transaccion anadida");
     } catch (err) {
       console.log(err);
@@ -309,6 +319,7 @@ function initialiceRest() {
       transactionJson = req.body;
       newTransaction = new Transaction(null, null, null, transactionJson);
       pool.addTransaction(newTransaction);
+      console.log("[REST] " + pool.getPoolInfo())
 
       // Ademas, notificamos al resto
       nodes.forEach((node, i) => {
@@ -360,10 +371,10 @@ async function mine() {
   while(true) {
     await delay(1500);
     attemp += 1;
-    console.log("\n## Mine attemp: " + attemp);
-    console.log("\nESTADO CADENA DE BLOQUES: \n" + blockChain.getBlockChainInfo());
-    console.log("ESTADO POOL TRANSACCIONES: " + pool.getPoolInfo());
-    console.log("Nodos vecinos: ", nodes);
+    console.log("\n[Mine] ## Mine attemp: " + attemp);
+    console.log("[Mine] ESTADO CADENA DE BLOQUES: " + blockChain.getBlockChainInfo());
+    console.log("[Mine] ESTADO POOL TRANSACCIONES: " + pool.getPoolInfo());
+    console.log("[Mine] Nodos vecinos: ", nodes);
     console.log("");
 
 
@@ -396,33 +407,42 @@ async function mine() {
 
         let endMiningTime = new Date().getTime();
         let miningCompleteMsg = ""+
-          "\nFound a valid Block! starting proof of work" +
-          "\nTime: " + (endMiningTime - startMiningTime)/1000 + "s" +
-          "\nDifficulty: " + difficulty +
-          "\nHash: " + triedHash + "";
-        console.log(miningCompleteMsg);
+          "\n[Mine] Found a valid Block! starting proof of work" +
+          "\n[Mine] Time: " + (endMiningTime - startMiningTime)/1000 + "s" +
+          "\n[Mine] Difficulty: " + difficulty +
+          "\n[Mine] Hash: " + triedHash +
+          "\n[Mine] Transactions: " + blockAttemp.getTransactions().length + "";
+          console.log(miningCompleteMsg);
 
         result = blockChain.addBlock(blockAttemp);
         // TODO: controlar si se añade despues de preguntar, axios a varios
         nodes.forEach((node, i) => {
           try {
             if (node.getId() != selfNode.getId()) {
-              console.log("Sending block to  " + node.getId());
+              console.log("[Mine] Sending block to  " + node.getId());
               Petitions.addBlock(node.getIp(), node.getPort(), blockAttemp);
             }
           } catch (err) {
-            console.log("Error sending block to " + node.getId())
+            console.log("[Mine] Error sending block to " + node.getId())
           }
+        });
+
+        // Se eliminan del pool las transacciones correspondientes al bloque
+        let processedTransactions = blockAttemp.getTransactions();
+        processedTransactions.forEach((tr, i) => {
+          console.log("[REST] Deleting transaction: " + tr.getHash());
+          pool.deleteTransaction(tr);
         });
 
         //x notificamos a los demas nodos
         //x lo añadimos a la cadena de bloques
         // eliminamos transacciones del pool
+        // Aplicamos/restamos las carteras
       } else {
         // el bloque ha sido minado por otro
         let endMiningTime = new Date().getTime();
-        console.log("Block mined by another node " +
-          "\nTime spent: " + (endMiningTime - startMiningTime)/1000 + "s")
+        console.log("[Mine] Block mined by another node " +
+          "\n[Mine] Time spent: " + (endMiningTime - startMiningTime)/1000 + "s")
       }
 
     } catch (err) {

@@ -131,6 +131,15 @@ class Block {
   setMerkleRoot(merkleRoot) {
     this.merkleRoot = merkleRoot;
   }
+
+//5. Transactions
+  getTransactions() {
+    return this.transactions;
+  }
+
+  setTransactions(transactions) {
+    this.transactions = transactions;
+  }
 }
 
 module.exports = Block;

@@ -98,7 +98,7 @@ export default {
             }
             
             console.log('http://'+this.ip+':'+this.puerto+'/addTransaction');
-            axios.post('http://'+this.ip+':'+this.puerto+'/addTransaction', jsonTransaction)
+            axios.post('http://'+this.ip+':'+this.puerto+'/addUserTransaction', jsonTransaction)
                 .then(function (response) {
                     // handle success
                     console.log(response);

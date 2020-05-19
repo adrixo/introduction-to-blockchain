@@ -153,6 +153,28 @@ async function initialiceNode() {
 }
 
 
+function swapAmounts(transaction) {
+  console.log("[Wallet] Processing transaction: " + transaction.getHash());
+
+  // Se elimina el dinero asociado a la cartera en x cantidad
+  let auxWs = new WalletRegister(transaction.getSenderPublicKey(), 0);
+  let auxWr = new WalletRegister(transaction.getReceiverPublicKey(), 0);
+  let auxAmount = transaction.getAmount();
+  auxAmount = parseInt(auxAmount, 10);
+
+  wallets.forEach((w, i) => {
+    if (w.isRegisterOf(auxWs.getId())) {
+      w.setAmount(w.getAmount()-auxAmount);
+    }
+
+    if (w.isRegisterOf(auxWr.getId())) {
+      w.setAmount(w.getAmount()+auxAmount);
+    }
+
+  });
+
+}
+
 /************************************************************************/
 /************************* BLOCKCHAIN API REST **************************/
 /************************************************************************/
@@ -281,9 +303,9 @@ function initialiceRest() {
             let deletedTransaction = new Transaction(null, null, null, jsonTransaction=tr);
             console.log("[REST] Deleting transaction: " + deletedTransaction.getHash());
             pool.deleteTransaction(deletedTransaction);
+            swapAmounts(deletedTransaction);
           });
 
-          // Se elimina/suma dinero de cada usuario
 
           res.send(blockAdded);
 
@@ -297,7 +319,7 @@ function initialiceRest() {
       }
 
     } catch (err) {
-      console.log("[REST] Add block error");
+      console.log("[REST] Add block error", err);
       res.send(blockError);
     }
   });
@@ -340,29 +362,61 @@ function initialiceRest() {
   */
   app.post('/addUserTransaction', function (req, res) {
     try {
-      console.log("[REST] Adding new user transaction")
+      console.log("[REST] Trying to add new user transaction")
       let transactionJson = req.body;
       let newTransaction = new Transaction(null, null, null, jsonTransaction=transactionJson);
 
       // Comprobar que tiene para sacar saldo,
       // en conjunción con otras posibles transacciones anteriores en la cadena de bloques
+      let userPublicKey = newTransaction.getSenderPublicKey();
+      let auxW = new WalletRegister(userPublicKey, 0);
+      let auxAmount = null;
 
-      pool.addTransaction(newTransaction);
-      console.log("[REST] " + pool.getPoolInfo())
-
-      // Ademas, notificamos al resto
-      nodes.forEach((node, i) => {
-        try {
-          if (node.getId() != selfNode.getId()) {
-            console.log("[REST] Sending transaction to " + node.getId());
-            Petitions.addTransaction(node.getIp(), node.getPort(), newTransaction);
-          }
-        } catch (err) {
-          console.log("[REST] Error sending Transaction to " + node.getId());
+      wallets.forEach((w, i) => {
+        if (w.isRegisterOf(auxW.getId())) {
+          auxAmount = w.getAmount() - newTransaction.getAmount();
         }
       });
 
-      res.send("transaccion anadida");
+      if (auxAmount == null) {
+        console.log("[REST] The user doesnt have a wallet. ");
+        res.send("The user doesnt have a wallet. ");
+
+      } else {
+        let poolTransactions = pool.getPool();
+        poolTransactions.forEach((tr, i) => {
+          if (tr.getSenderPublicKey() == newTransaction.getSenderPublicKey()) {
+            auxAmount = auxAmount - newTransaction.getAmount();
+          }
+        });
+
+        // Se comprueba si se puede añadir
+        if (auxAmount>=0) {
+          console.log("[REST] Adding new user transaction, user amount will be " + auxAmount)
+
+          pool.addTransaction(newTransaction);
+          console.log("[REST] " + pool.getPoolInfo())
+
+          // Ademas, notificamos al resto
+          nodes.forEach((node, i) => {
+            try {
+              if (node.getId() != selfNode.getId()) {
+                console.log("[REST] Sending transaction to " + node.getId());
+                Petitions.addTransaction(node.getIp(), node.getPort(), newTransaction);
+              }
+            } catch (err) {
+              console.log("[REST] Error sending Transaction to " + node.getId());
+            }
+          });
+
+          res.send("transaccion anadida");
+        } else {
+          console.log("[REST] Lack of amount")
+
+          res.send("Lack of amount");
+        }
+      }
+
     } catch (err) {
       console.log(err);
       res.send(error);
@@ -486,6 +540,7 @@ async function mine() {
         let processedTransactions = blockAttemp.getTransactions();
         processedTransactions.forEach((tr, i) => {
           console.log("[Mine] Deleting transaction: " + tr.getHash());
+          swapAmounts(tr);
           pool.deleteTransaction(tr);
         });
 

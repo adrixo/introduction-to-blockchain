@@ -28,10 +28,8 @@ class WalletRegister {
     return jsonWalletRegister;
   }
 
-  isRegisterOf(publicKey) {
-    let publicKeyHash = CryptoModule.getHash(publicKey);
-
-    if (publicKeyHash == this.id)
+  isRegisterOf(id) {
+    if (id == this.id)
       return true;
 
     return false;

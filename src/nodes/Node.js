@@ -6,11 +6,31 @@ var Transaction = require('../models/Transaction');
 var BlockChain = require('../models/BlockChain');
 var NodeModel = require('../models/NodeModel');
 var Pool = require('../models/Pool');
+var WalletRegister = require('../models/WalletRegister');
 var CryptoModule = require('../models/CryptoModule');
 var Petitions = require('./petitions/Petitions');
 var AsyncLock = require('async-lock');
+const Setup = require('./Setup');
 var ip = require("ip");
 
+const app = express();
+
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
+/************************ Instanciacion *****************************/
+
+nodeKeys = CryptoModule.generatePair();
+
+var setupFinished = false;
+//Indica al proceso si debe seguir minando
+// Se pone a false si se añade un bloque a la cadena para que reconsidere transacciones
+var mineFlag = false;
+var difficulty = 4;
+var blockChain = new BlockChain();
+var pool = new Pool();
+var nodes = [];
+var wallets = [];
 // Si se le pasa parámetros ipMaster:puertoMaster entiende que no es master
 // Si no, entiende que es nodo master
 var args = process.argv.splice(2)
@@ -38,6 +58,17 @@ if (args.length!=3) {
     isMasterNode = true;
     nodePort = masterNodePort;
     console.log("Starting master node at " + masterNodeAddr +':'+ masterNodePort)
+
+    // Adicionalmente y para este caso de estudio, se van a cargar 3 claves de un archivo
+    // e instanciar sus carteras asociadas con 100 unidades
+    var usersKeys = Setup.generateUsersJson().keys;
+    usersKeys.forEach((uKeys, i) => {
+      let newWallet = new WalletRegister(uKeys.publicKey, 100);
+      wallets.push(newWallet);
+    });
+    console.log(wallets);
+
+
   } else if (args[0] == 'S'){
     isMasterNode = false;
     console.log("Starting slave node at " + nodeAddr +':'+ nodePort);
@@ -47,24 +78,6 @@ if (args.length!=3) {
     return;
   }
 }
-
-const app = express();
-
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-
-/************************ Instanciacion *****************************/
-
-nodeKeys = CryptoModule.generatePair();
-
-var setupFinished = false;
-//Indica al proceso si debe seguir minando
-// Se pone a false si se añade un bloque a la cadena para que reconsidere transacciones
-var mineFlag = false;
-var difficulty = 4;
-var blockChain = new BlockChain();
-var pool = new Pool();
-var nodes = [];
 
 /************************************************************************/
 /***************************Inicializacion*******************************/
@@ -350,6 +363,26 @@ function initialiceRest() {
     res.send("Transactions deleted");
   });
 
+
+  /* @post
+  * Devuelve el pool de transacciones
+  */
+  app.get('/getWallets', function (req, res) {
+    try {
+      console.log("[REST] Sending wallets")
+      let jsonWallets = { wallets: []};
+
+      wallets.forEach((w, i) => {
+        let jsonWallet = w.getJSON();
+        jsonWallets.wallets.push(jsonWallet);
+      });
+
+      res.send(jsonWallets);
+    } catch (err) {
+      console.log(err);
+      res.send(error);
+    }
+  });
 }
 
 /* Funcion delay simple, */

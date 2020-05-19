@@ -37,6 +37,9 @@ class Petitions {
     return axios.post('http://'+ip+':'+port+'/addUserTransaction', jsonTransaction);
   }
 
+  static getWallets(ip, port) {
+    return axios.get('http://'+ip+':'+port+'/getWallets');
+  }
 }
 
 module.exports = Petitions;

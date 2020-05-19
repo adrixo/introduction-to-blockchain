@@ -21,8 +21,8 @@ class BlockChain {
       return "Just instance of void blockchain."
 
     var info = ""
-      + "Length: " + this.blockChain.length + "\n"
-      + "CreationDate: " + this.blockChain[0].getTimestamp();
+      + "Length: " + this.blockChain.length + "";
+      //+ "CreationDate: " + this.blockChain[0].getTimestamp();
 
     return info;
   }

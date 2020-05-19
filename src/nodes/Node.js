@@ -7,11 +7,32 @@ var Transaction = require('../models/Transaction');
 var BlockChain = require('../models/BlockChain');
 var NodeModel = require('../models/NodeModel');
 var Pool = require('../models/Pool');
+var WalletRegister = require('../models/WalletRegister');
 var CryptoModule = require('../models/CryptoModule');
 var Petitions = require('./petitions/Petitions');
 var AsyncLock = require('async-lock');
+const Setup = require('./Setup');
 var ip = require("ip");
 
+const app = express();
+
+app.use(cors());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
+/************************ Instanciacion *****************************/
+
+nodeKeys = CryptoModule.generatePair();
+
+var setupFinished = false;
+//Indica al proceso si debe seguir minando
+// Se pone a false si se añade un bloque a la cadena para que reconsidere transacciones
+var mineFlag = false;
+var difficulty = 4;
+var blockChain = new BlockChain();
+var pool = new Pool();
+var nodes = [];
+var wallets = [];
 // Si se le pasa parámetros ipMaster:puertoMaster entiende que no es master
 // Si no, entiende que es nodo master
 var args = process.argv.splice(2)
@@ -39,6 +60,15 @@ if (args.length!=3) {
     isMasterNode = true;
     nodePort = masterNodePort;
     console.log("Starting master node at " + masterNodeAddr +':'+ masterNodePort)
+
+    // Adicionalmente y para este caso de estudio, se van a cargar 3 claves de un archivo
+    // e instanciar sus carteras asociadas con 100 unidades
+    var usersKeys = Setup.generateUsersJson().keys;
+    usersKeys.forEach((uKeys, i) => {
+      let newWallet = new WalletRegister(uKeys.publicKey, 100);
+      wallets.push(newWallet);
+    });
+
   } else if (args[0] == 'S'){
     isMasterNode = false;
     console.log("Starting slave node at " + nodeAddr +':'+ nodePort);
@@ -48,25 +78,6 @@ if (args.length!=3) {
     return;
   }
 }
-
-const app = express();
-
-app.use(cors());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-
-/************************ Instanciacion *****************************/
-
-nodeKeys = CryptoModule.generatePair();
-
-var setupFinished = false;
-//Indica al proceso si debe seguir minando
-// Se pone a false si se añade un bloque a la cadena para que reconsidere transacciones
-var mineFlag = false;
-var difficulty = 4;
-var blockChain = new BlockChain();
-var pool = new Pool();
-var nodes = [];
 
 /************************************************************************/
 /***************************Inicializacion*******************************/
@@ -113,12 +124,24 @@ async function initialiceNode() {
       let newPool = getPoolResponse.data;
       pool = new Pool(pool=newPool);
 
+      // 3. Se pide las carteras con las que se esta trabajando
+      let getWalletsResponse = await Petitions.getWallets(masterNodeAddr, masterNodePort);
+      let walletsJson = getWalletsResponse.data.wallets;
+      walletsJson.forEach((w, i) => {
+        let newWalletRegister = new WalletRegister(null, null, jsonWalletRegister=w);
+        wallets.push(newWalletRegister);
+      });
+
       selfNode = new NodeModel(nodeAddr, nodePort);
       let selfNodeJson = selfNode.getJSON();
 
       // 3. Se informa de nuevo nodo
       nodes.forEach((node, i) => {
-        Petitions.addNode(node.ip, node.port, selfNodeJson);
+        try {
+          Petitions.addNode(node.ip, node.port, selfNodeJson);
+        } catch (err) {
+          console.log("[STARTUP] Nodo caido " + node.id)
+        }
       });
 
       nodes.push(selfNode);
@@ -252,7 +275,16 @@ function initialiceRest() {
           mineFlag = false;
           // Se añade el bloque y se responde
           blockChain.addBlock(newBlock);
-          // TODO: Se eliminan las transacciones correspondientes al bloque
+          // Se eliminan del pool las transacciones correspondientes al bloque
+          let processedTransactions = newBlock.getTransactions();
+          processedTransactions.forEach((tr, i) => {
+            let deletedTransaction = new Transaction(null, null, null, jsonTransaction=tr);
+            console.log("[REST] Deleting transaction: " + deletedTransaction.getHash());
+            pool.deleteTransaction(deletedTransaction);
+          });
+
+          // Se elimina/suma dinero de cada usuario
+
           res.send(blockAdded);
 
         } else {
@@ -292,9 +324,10 @@ function initialiceRest() {
   app.post('/addTransaction', function (req, res) {
     try {
       console.log("[REST] Adding transaction")
-      transactionJson = req.body;
-      newTransaction = new Transaction(null, null, null, transactionJson);
+      let transactionJson = req.body;
+      let newTransaction = new Transaction(null, null, null, jsonTransaction=transactionJson);
       pool.addTransaction(newTransaction);
+      console.log("[REST] " + pool.getPoolInfo())
       res.send("transaccion anadida");
     } catch (err) {
       console.log(err);
@@ -308,9 +341,14 @@ function initialiceRest() {
   app.post('/addUserTransaction', function (req, res) {
     try {
       console.log("[REST] Adding new user transaction")
-      transactionJson = req.body;
-      newTransaction = new Transaction(null, null, null, transactionJson);
+      let transactionJson = req.body;
+      let newTransaction = new Transaction(null, null, null, jsonTransaction=transactionJson);
+
+      // Comprobar que tiene para sacar saldo,
+      // en conjunción con otras posibles transacciones anteriores en la cadena de bloques
+
       pool.addTransaction(newTransaction);
+      console.log("[REST] " + pool.getPoolInfo())
 
       // Ademas, notificamos al resto
       nodes.forEach((node, i) => {
@@ -341,6 +379,26 @@ function initialiceRest() {
     res.send("Transactions deleted");
   });
 
+
+  /* @post
+  * Devuelve el pool de transacciones
+  */
+  app.get('/getWallets', function (req, res) {
+    try {
+      console.log("[REST] Sending wallets")
+      let jsonWallets = { wallets: []};
+
+      wallets.forEach((w, i) => {
+        let jsonWallet = w.getJSON();
+        jsonWallets.wallets.push(jsonWallet);
+      });
+
+      res.send(jsonWallets);
+    } catch (err) {
+      console.log(err);
+      res.send(error);
+    }
+  });
 }
 
 /* Funcion delay simple, */
@@ -362,10 +420,16 @@ async function mine() {
   while(true) {
     await delay(1500);
     attemp += 1;
-    console.log("\n## Mine attemp: " + attemp);
-    console.log("\nESTADO CADENA DE BLOQUES: \n" + blockChain.getBlockChainInfo());
-    console.log("ESTADO POOL TRANSACCIONES: " + pool.getPoolInfo());
-    console.log("Nodos vecinos: ", nodes);
+
+    let stringNodes = []
+    nodes.forEach((n, i) => {
+      stringNodes.push(n.getId())
+    });
+
+    console.log("\n[Mine] ## Mine attemp: " + attemp);
+    console.log("[Mine] ESTADO CADENA DE BLOQUES: " + blockChain.getBlockChainInfo());
+    console.log("[Mine] ESTADO POOL TRANSACCIONES: " + pool.getPoolInfo());
+    console.log("[Mine] Nodos vecinos: ", stringNodes);
     console.log("");
 
 
@@ -398,33 +462,42 @@ async function mine() {
 
         let endMiningTime = new Date().getTime();
         let miningCompleteMsg = ""+
-          "\nFound a valid Block! starting proof of work" +
-          "\nTime: " + (endMiningTime - startMiningTime)/1000 + "s" +
-          "\nDifficulty: " + difficulty +
-          "\nHash: " + triedHash + "";
-        console.log(miningCompleteMsg);
+          "\n[Mine] Found a valid Block! starting proof of work" +
+          "\n[Mine] Time: " + (endMiningTime - startMiningTime)/1000 + "s" +
+          "\n[Mine] Difficulty: " + difficulty +
+          "\n[Mine] Hash: " + triedHash +
+          "\n[Mine] Transactions: " + blockAttemp.getTransactions().length + "";
+          console.log(miningCompleteMsg);
 
         result = blockChain.addBlock(blockAttemp);
         // TODO: controlar si se añade despues de preguntar, axios a varios
         nodes.forEach((node, i) => {
           try {
             if (node.getId() != selfNode.getId()) {
-              console.log("Sending block to  " + node.getId());
+              console.log("[Mine] Sending block to  " + node.getId());
               Petitions.addBlock(node.getIp(), node.getPort(), blockAttemp);
             }
           } catch (err) {
-            console.log("Error sending block to " + node.getId())
+            console.log("[Mine] Error sending block to " + node.getId())
           }
+        });
+
+        // Se eliminan del pool las transacciones correspondientes al bloque
+        let processedTransactions = blockAttemp.getTransactions();
+        processedTransactions.forEach((tr, i) => {
+          console.log("[Mine] Deleting transaction: " + tr.getHash());
+          pool.deleteTransaction(tr);
         });
 
         //x notificamos a los demas nodos
         //x lo añadimos a la cadena de bloques
         // eliminamos transacciones del pool
+        // Aplicamos/restamos las carteras
       } else {
         // el bloque ha sido minado por otro
         let endMiningTime = new Date().getTime();
-        console.log("Block mined by another node " +
-          "\nTime spent: " + (endMiningTime - startMiningTime)/1000 + "s")
+        console.log("[Mine] Block mined by another node " +
+          "\n[Mine] Time spent: " + (endMiningTime - startMiningTime)/1000 + "s")
       }
 
     } catch (err) {

@@ -64,7 +64,6 @@ if (args.length!=3) {
     // Adicionalmente y para este caso de estudio, se van a cargar 3 claves de un archivo
     // e instanciar sus carteras asociadas con 100 unidades
     var usersKeys = Setup.generateUsersJson().keys;
-    console.log(usersKeys[0].publicKey)
 
     usersKeys.forEach((uKeys, i) => {
       let newWallet = new WalletRegister(uKeys.publicKey, 100);

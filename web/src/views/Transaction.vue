@@ -85,9 +85,22 @@
                         </v-btn>
                     </v-col>
                 </v-row>
-
             </v-layout>
         </v-container>
+
+        <v-dialog
+                v-model="showMessage"
+                hide-overlay
+                width="300">
+            <v-card
+                    color="rgb(13, 72, 80)"
+                    dark>
+                <v-card-text>
+                    <p class="futura"> {{ messageTitle }} </p>
+                    <p class="helveticaNeue"> {{  message }} </p>
+                </v-card-text>
+            </v-card>
+        </v-dialog>
     </div>
 </template>
 
@@ -107,7 +120,11 @@ export default {
             claveEmisor: null,
             privadaEmisor: null,
             claveDestinatario: null,
-            dinero: null
+            dinero: null,
+
+            showMessage: false,
+            messageTitle: null,
+            message: null
         }
     },
     methods: {
@@ -120,37 +137,57 @@ export default {
                 + timestamp + ","
                 + this.dinero;
 
+            try {
+                var digitalSign = CryptoModule.sign(this.privadaEmisor, toSign);
 
-            let digitalSign = CryptoModule.sign(this.privadaEmisor, toSign);
+                var toHash = ""
+                    + this.claveEmisor + ","
+                    + this.claveDestinatario + ","
+                    + digitalSign + ","
+                    + timestamp + ","
+                    + this.dinero;
 
-            let toHash = ""
-                + this.claveEmisor + ","
-                + this.claveDestinatario + ","
-                + digitalSign + ","
-                + timestamp + ","
-                + this.dinero;
+                var hash = CryptoModule.getHash(toHash);
 
-            let hash = CryptoModule.getHash(toHash);
-
-            let jsonTransaction = {
-                "senderPublicKey": this.claveEmisor,
-                "receiverPublicKey": this.claveDestinatario,
-                "amount": this.dinero,
-                "digitalSign": digitalSign,
-                "timestamp": timestamp,
-                "hash": hash
+                var jsonTransaction = {
+                    "senderPublicKey": this.claveEmisor,
+                    "receiverPublicKey": this.claveDestinatario,
+                    "amount": this.dinero,
+                    "digitalSign": digitalSign,
+                    "timestamp": timestamp,
+                    "hash": hash
+                }
+                
+            } catch (error) {
+                console.log(error);
+                this.messageTitle = "Error";
+                this.message = "Comprueba el formato de las claves.";
+                this.message += error;
+                this.showMessage = true;
+                return;
             }
 
             axios.post('http://'+this.ip+':'+this.puerto+'/addUserTransaction', jsonTransaction)
-                .then(function (response) {
+                .then((response) => {
                     // handle success
                     console.log(response);
+                    if (!response.data.error) {
+                        this.messageTitle = "Solicitado";
+                    } else {
+                        this.messageTitle = "Error";
+                    }
+                    
+                    this.message = response.data.message;
+                    this.showMessage = true;
                 })
-                .catch(function (error) {
+                .catch((error)  => {
                     // handle error
                     console.log(error);
+                    this.messageTitle = "Error";
+                    this.message = error;
+                    this.showMessage = true;
                 })
-                .finally(function () {
+                .finally(() => {
                     // always executed
                 });
         }

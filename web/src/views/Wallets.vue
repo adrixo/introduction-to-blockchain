@@ -55,14 +55,25 @@
                                     class="elevation-1"
                             >
                             </v-data-table>
-
                         </v-card>
-                        
                     </v-col>
                 </v-row>
-
             </v-layout>
         </v-container>
+
+        <v-dialog
+                v-model="showMessage"
+                hide-overlay
+                width="300">
+            <v-card
+                    color="rgb(13, 72, 80)"
+                    dark>
+                <v-card-text>
+                    <p class="futura"> {{ messageTitle }} </p>
+                    <p class="helveticaNeue"> {{  message }} </p>
+                </v-card-text>
+            </v-card>
+        </v-dialog>
     </div>
 </template>
 
@@ -77,6 +88,7 @@ export default {
         return {
             ip: null,
             puerto: null,
+
             headers: [
                 {
                     text: 'ID',
@@ -90,7 +102,11 @@ export default {
                     value: 'amount'
                     }
             ],
-            wallets:[] 
+            wallets:[],
+
+            showMessage: false,
+            messageTitle: null,
+            message: null
         }
     },
     methods: {
@@ -104,6 +120,9 @@ export default {
                 .catch((error) => {
                     // handle error
                     console.log(error);
+                    this.messageTitle = "Error";
+                    this.message = error;
+                    this.showMessage = true;
                 })
                 .finally(() => {
                     // always executed

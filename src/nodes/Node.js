@@ -385,7 +385,7 @@ function initialiceRest() {
 
       if (auxAmount == null) {
         console.log("[REST] The user doesnt have a wallet. ");
-        res.send("The user doesnt have a wallet. ");
+        res.send({error: false, message: "El usuario no tiene una cartera."});
 
       } else {
         let poolTransactions = pool.getPool();
@@ -414,17 +414,17 @@ function initialiceRest() {
             }
           });
 
-          res.send("transaccion anadida");
+          res.send({error: false, message: "Transacción solicitada."});
         } else {
           console.log("[REST] Lack of amount")
 
-          res.send("Lack of amount");
+          res.send({error: false, message: "El usuario no tiene suficiente dinero."});
         }
       }
 
     } catch (err) {
       console.log(err);
-      res.send(error);
+      res.send(res.send({error: true, message: error}));
     }
   });
 

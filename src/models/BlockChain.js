@@ -79,20 +79,7 @@ class BlockChain {
     if (depth != 0) {
       operativeBlockchain = this.blockChain.splice(this.blockChain.length - depth, this.blockChain.length);
 
-    } else if (depth == 1) {
-      return true;
-      /* TODO: la he liado, comprobar dos últimos solamente
-      let lastHash = this.getLastHash();
-
-      if ( lastHash == "genesis" )
-        return false;
-
-      if ( newBlock.validate() && newBlock.getHash() == lastHash )
-        return true;
-
-      return false;
-      */
-    } else {
+    }  else {
       operativeBlockchain = this.blockChain; // esta copia quizas consume recursos innecesarios, lo mas eficaz me parece duplicar el siguiente código
     }
 

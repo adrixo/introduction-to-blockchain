@@ -24,7 +24,6 @@ app.use(bodyParser.json());
 
 nodeKeys = CryptoModule.generatePair();
 
-var setupFinished = false;
 //Indica al proceso si debe seguir minando
 // Se pone a false si se añade un bloque a la cadena para que reconsidere transacciones
 var mineFlag = false;
@@ -96,7 +95,7 @@ async function initialiceNode() {
     selfNode = new NodeModel(nodeAddr, nodePort);
     nodes.push(selfNode);
     // Como nodo master,  crea el bloque genesis o lo carga de base de datos/fichero
-    let firstRewardTransaction = new Transaction(selfNode.getId(), selfNode.getId(), 100);
+    let firstRewardTransaction = new Transaction(nodeKeys.publicKey, nodeKeys.publicKey, 100);
     firstRewardTransaction.sign(nodeKeys.privateKey);
     let genesis = new Block("genesis", 12345, [firstRewardTransaction]);
     blockChain.addBlock(genesis);
@@ -365,10 +364,8 @@ function initialiceRest() {
     try {
       console.log("[REST] Trying to add new user transaction")
       let transactionJson = req.body;
-      console.log(transactionJson)
-      transactionJson.senderPublicKey = transactionJson.senderPublicKey.replace(/\\\n/g, /\n/);
-      console.log(transactionJson)
-      console.log(transactionJson.senderPublicKey)
+      transactionJson.senderPublicKey = transactionJson.senderPublicKey.replace(/\\n/g, "\n");
+      transactionJson.receiverPublicKey = transactionJson.receiverPublicKey.replace(/\\n/g, "\n");
       let newTransaction = new Transaction(null, null, null, jsonTransaction=transactionJson);
 
       // Comprobar que tiene para sacar saldo,
@@ -429,17 +426,6 @@ function initialiceRest() {
   });
 
   /* @post
-  * Elimina una transaccion
-  // TODO; no sería necesario si las transacciones se eliminan obteniendolas de un bloque añadido
-  // De hecho sería preferible porque se reduce el n mensajes y complejidad
-  */
-  app.get('/deleteTransaction', function (req, res) {
-    let transactionArray = req.body;
-    res.send("Transactions deleted");
-  });
-
-
-  /* @post
   * Devuelve el pool de transacciones
   */
   app.get('/getWallets', function (req, res) {
@@ -475,7 +461,7 @@ async function delay(delayInms) {
 async function mine() {
 
   let attemp = 0;
-  // TODO: setupFinished, se espera hasta que sea falso, esto es hasta que sea master y tenga cadena, o reciba nodos vecinos y su cadenas
+
   while(true) {
     await delay(1500);
     attemp += 1;
@@ -496,7 +482,7 @@ async function mine() {
 
       // Se seleccionan las transacciones y se intenta minar un bloque
       // TODO: bloquear aqui con semaforo hasta que se eliminen las transacciones ya añadidas
-      let rewardTransaction = new Transaction(selfNode.getId(), selfNode.getId(), 100);
+      let rewardTransaction = new Transaction(nodeKeys.publicKey, nodeKeys.publicKey, 100);
       rewardTransaction.sign(nodeKeys.privateKey);
       let transactionsToAdd = pool.getTransactionsToMine();
       transactionsToAdd.push(rewardTransaction);

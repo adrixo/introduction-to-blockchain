@@ -24,7 +24,7 @@ app.use(bodyParser.json());
 
 nodeKeys = CryptoModule.generatePair();
 
-//Indica al proceso si debe seguir minando
+// Indica al proceso si debe seguir minando
 // Se pone a false si se añade un bloque a la cadena para que reconsidere transacciones
 var mineFlag = false;
 var difficulty = 4;
@@ -86,7 +86,6 @@ if (args.length!=3) {
 * Cada nodo se identifica por el número de puerto, empezando en el 8005
 * Primero intenta conectarse a los puertos 8005-8010 pidiendo por vecinos
 * Si no recibe ninguno se declara como master y se selecciona como puerto 8005
-* TODO: contemplar: si no puede conectarse como master es que el puerto está bindeado y el servidor no responde
 */
 async function initialiceNode() {
   console.log("[STARTUP] Searching for nodes...");
@@ -368,6 +367,7 @@ function initialiceRest() {
       transactionJson.receiverPublicKey = transactionJson.receiverPublicKey.replace(/\\n/g, "\n");
       let newTransaction = new Transaction(null, null, null, jsonTransaction=transactionJson);
 
+      let validSignature = newTransaction.validate()
       // Comprobar que tiene para sacar saldo,
       // en conjunción con otras posibles transacciones anteriores en la cadena de bloques
       let userPublicKey = newTransaction.getSenderPublicKey();
@@ -380,7 +380,11 @@ function initialiceRest() {
         }
       });
 
-      if (auxAmount == null) {
+      if (!validSignature) {
+        console.log("[REST] The signature is invalid. ");
+        res.send({error: false, message: "La transacción no está firmada correctamente."});
+
+      } else if (auxAmount == null) {
         console.log("[REST] The user doesnt have a wallet. ");
         res.send({error: false, message: "El usuario no tiene una cartera."});
 
@@ -399,7 +403,7 @@ function initialiceRest() {
           pool.addTransaction(newTransaction);
           console.log("[REST] " + pool.getPoolInfo())
 
-          // Ademas, notificamos al resto
+          // Ademas, se multidifunde al resto
           nodes.forEach((node, i) => {
             try {
               if (node.getId() != selfNode.getId()) {
@@ -481,7 +485,6 @@ async function mine() {
     try {
 
       // Se seleccionan las transacciones y se intenta minar un bloque
-      // TODO: bloquear aqui con semaforo hasta que se eliminen las transacciones ya añadidas
       let rewardTransaction = new Transaction(nodeKeys.publicKey, nodeKeys.publicKey, 100);
       rewardTransaction.sign(nodeKeys.privateKey);
       let transactionsToAdd = pool.getTransactionsToMine();
@@ -515,7 +518,7 @@ async function mine() {
           console.log(miningCompleteMsg);
 
         result = blockChain.addBlock(blockAttemp);
-        // TODO: controlar si se añade despues de preguntar, axios a varios
+
         nodes.forEach((node, i) => {
           try {
             if (node.getId() != selfNode.getId()) {
@@ -535,10 +538,6 @@ async function mine() {
           pool.deleteTransaction(tr);
         });
 
-        //x notificamos a los demas nodos
-        //x lo añadimos a la cadena de bloques
-        // eliminamos transacciones del pool
-        // Aplicamos/restamos las carteras
       } else {
         // el bloque ha sido minado por otro
         let endMiningTime = new Date().getTime();

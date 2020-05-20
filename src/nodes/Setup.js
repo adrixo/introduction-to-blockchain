@@ -2,6 +2,10 @@
 var CryptoModule = require('../models/CryptoModule');
 const fs = require('fs');
 
+/*
+* Crea 3 pares de claves por defecto, posteriormente se crean 3 carteras para cada una de ellas
+*/
+
 class Setup {
 
   static generateUsersJson () {
@@ -23,7 +27,7 @@ class Setup {
       buffer = Buffer.concat([buffer,Buffer.from(element.privateKey)]);
       buffer = Buffer.concat([buffer,Buffer.from("\n\n")]);
     });
-    
+
     try {
       keysJson = require(keysFile);
       console.log("Loadding users keys")

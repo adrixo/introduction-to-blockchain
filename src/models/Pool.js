@@ -4,9 +4,6 @@ var Transaction = require('./Transaction');
 
 class Pool {
 
-/* Variables*/
-
-
 /* Métodos */
 /* Constructor
 */

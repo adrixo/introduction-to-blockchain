@@ -4,9 +4,6 @@ var CryptoModule = require('./CryptoModule');
 
 class Transaction {
 
-/* Variables*/
-
-
 /* Métodos */
 /* Constructor
 * - Clave pública del emisor para validar la firma
@@ -92,7 +89,7 @@ class Transaction {
 /*
 * Valida que la transacción es correcta
 */
-  validate() {  
+  validate() {
     let toSign = this.transactionToString_toSign();
     if ( !CryptoModule.validateSign(this.senderPublicKey, this.digitalSign, toSign) )
       return false;

@@ -9,6 +9,7 @@
                 <v-row>
                     <v-col class="field" cols="6">
                         <v-text-field
+                                outlined
                                 v-model="ip"
                                 label="IP"
                                 clearable>
@@ -17,36 +18,37 @@
 
                     <v-col class="field" cols="6">
                         <v-text-field
+                                outlined
                                 v-model="puerto"
                                 label="puerto"
                                 clearable>
                         </v-text-field>
                     </v-col>
 
-                    <v-col class="field" cols="6">
+                    <v-col class="field" cols="12">
                        <v-textarea
                                 outlined
-                                :rows="1"
+                                :rows="3"
                                 label="Clave pública emisor"
                                 v-model="claveEmisor"
                                 :value="claveEmisor"
                         ></v-textarea>
                     </v-col>
 
-                    <v-col class="field" cols="6">
+                    <v-col class="field" cols="12">
                         <v-textarea
                                 outlined
-                                :rows="1"
+                                :rows="3"
                                 label="Clave privada emisor"
                                 v-model="privadaEmisor"
                                 :value="privadaEmisor"
                         ></v-textarea>
                     </v-col>
 
-                    <v-col class="field" cols="6">
+                    <v-col class="field" cols="12">
                         <v-textarea
                                 outlined
-                                :rows="1"
+                                :rows="3"
                                 label="Clave destinatario"
                                 v-model="claveDestinatario"
                                 :value="claveDestinatario"
@@ -55,14 +57,14 @@
 
                     <v-col class="field" cols="6">
                         <v-text-field
+                                outlined
                                 v-model="dinero"
                                 label="Dinero"
                                 clearable>
                         </v-text-field>
                     </v-col>
 
-
-                    <v-col class="field" cols="10">
+                    <v-col class="field" cols="4">
                     </v-col>
 
                     <v-col class="field" cols="2">
@@ -98,8 +100,6 @@ import CryptoModule from '../assets/js/models/CryptoModule';
 
 
 export default {
-
-
     data() {
         return {
             ip: null,
@@ -112,7 +112,6 @@ export default {
     },
     methods: {
         sendTransaction() {
-            console.log("entrando")
             let timestamp = Date.now();
 
             let toSign = ""
@@ -123,9 +122,6 @@ export default {
 
 
             let digitalSign = CryptoModule.sign(this.privadaEmisor, toSign);
-            console.log("dfsa")
-
-            console.log(CryptoModule.validateSign(this.claveEmisor,digitalSign, toSign));
 
             let toHash = ""
                 + this.claveEmisor + ","
@@ -134,11 +130,7 @@ export default {
                 + timestamp + ","
                 + this.dinero;
 
-            console.log(toHash);
-
             let hash = CryptoModule.getHash(toHash);
-
-
 
             let jsonTransaction = {
                 "senderPublicKey": this.claveEmisor,
@@ -172,13 +164,13 @@ export default {
 #title {
     font-size: 1.6em;
     text-align:center;
-    padding: 2% 0;
+    padding: 1% 0;
     font-family:"Futur";
     color: rgb(13, 72, 80);
 }
 
 .field {
-    padding: 20px 3%;
+    padding: 10px 3%;
 }
 
 

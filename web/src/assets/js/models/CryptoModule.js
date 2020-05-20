@@ -1,6 +1,6 @@
 var crypto = require('crypto');
 
-class CryptoModule {
+export default class CryptoModule {
 
   static generatePair (modulusLength=2048) {
     var { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
@@ -63,7 +63,6 @@ class CryptoModule {
     sign.end();
 
     let signature = sign.sign(privateKey, 'hex');
-
     return signature;
   }
 
@@ -81,5 +80,3 @@ class CryptoModule {
     return result;
   }
 }
-
-module.exports = CryptoModule;

@@ -19,6 +19,17 @@
                 </v-btn>
             </v-toolbar-items>
 
+            <v-toolbar-items>
+                <v-btn
+                        text
+                        dark
+                        class="toolbar"
+                        color="#FFFFFF"
+                        to="/wallets">
+                    carteras
+                </v-btn>
+            </v-toolbar-items>
+
         </v-toolbar>
 
         <router-view/>
@@ -31,16 +42,7 @@
 export default {
     data() {
         return {
-            items: [
-                { path: "/#/transaction", title: "Transacción" },
-            ],
-            on: false
         }
-    },
-    methods: {
-        onClickMenu(item) {
-            window.location.href = item.path;
-        },
     }
 }
 </script>

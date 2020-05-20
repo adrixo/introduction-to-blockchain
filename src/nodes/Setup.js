@@ -14,14 +14,22 @@ class Setup {
     var keys = [k1, k2, k3]
     var keysJson = {keys: keys}
 
-    let data = JSON.stringify(keysJson, null, 2);
-    const keysFile ='./users.json';
+    const keysFile ='./users.key';
+    let buffer = Buffer.from("");
+    keys.forEach(element => {
+      buffer = Buffer.concat([buffer,Buffer.from("NEW KEY PAIR\n\n")]);
+      buffer = Buffer.concat([buffer,Buffer.from(element.publicKey)]);
+      buffer = Buffer.concat([buffer,Buffer.from("\n")]);
+      buffer = Buffer.concat([buffer,Buffer.from(element.privateKey)]);
+      buffer = Buffer.concat([buffer,Buffer.from("\n\n")]);
+    });
+    
     try {
       keysJson = require(keysFile);
       console.log("Loadding users keys")
     } catch(error) {
       console.log("Creating users keys")
-      fs.writeFile(keysFile, data, 'utf8', function(err) {
+      fs.writeFile(keysFile, buffer, 'utf8', function(err) {
         if (err) {
             console.log('[setupConfig] Error writting file ' + err);
         }

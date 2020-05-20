@@ -45,7 +45,7 @@ class Transaction {
      + this.senderPublicKey + ","
      + this.receiverPublicKey + ","
      + this.timestamp + ","
-     + this.amount + ","
+     + this.amount;
   }
 
 /*
@@ -92,9 +92,7 @@ class Transaction {
 /*
 * Valida que la transacción es correcta
 */
-  validate() {
-    return true;
-    
+  validate() {  
     let toSign = this.transactionToString_toSign();
     if ( !CryptoModule.validateSign(this.senderPublicKey, this.digitalSign, toSign) )
       return false;

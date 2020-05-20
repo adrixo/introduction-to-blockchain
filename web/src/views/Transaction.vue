@@ -14,6 +14,7 @@
                                 clearable>
                         </v-text-field>
                     </v-col>
+
                     <v-col class="field" cols="6">
                         <v-text-field
                                 v-model="puerto"
@@ -22,21 +23,36 @@
                         </v-text-field>
                     </v-col>
 
+                    <v-col class="field" cols="6">
+                       <v-textarea
+                                outlined
+                                :rows="1"
+                                label="Clave pública emisor"
+                                v-model="claveEmisor"
+                                :value="claveEmisor"
+                        ></v-textarea>
+                    </v-col>
 
                     <v-col class="field" cols="6">
-                        <v-text-field
-                                v-model="claveEmisor"
-                                label="Clave pública emisor"
-                                clearable>
-                        </v-text-field>
+                        <v-textarea
+                                outlined
+                                :rows="1"
+                                label="Clave privada emisor"
+                                v-model="privadaEmisor"
+                                :value="privadaEmisor"
+                        ></v-textarea>
                     </v-col>
+
                     <v-col class="field" cols="6">
-                        <v-text-field
+                        <v-textarea
+                                outlined
+                                :rows="1"
+                                label="Clave destinatario"
                                 v-model="claveDestinatario"
-                                label="Clave pública destinatario"
-                                clearable>
-                        </v-text-field>
+                                :value="claveDestinatario"
+                        ></v-textarea>
                     </v-col>
+
                     <v-col class="field" cols="6">
                         <v-text-field
                                 v-model="dinero"
@@ -44,19 +60,24 @@
                                 clearable>
                         </v-text-field>
                     </v-col>
-                    <v-col class="field" cols="6">
+
+
+                    <v-col class="field" cols="10">
+                    </v-col>
+
+                    <v-col class="field" cols="2">
                         <v-btn
                                 id="mainDialogOKButtom"
                                 class="futura"
-
                                 color="rgb(26, 164, 182)"
                                 @click="sendTransaction()"
                                 :disabled="ip == null || ip.length == 0 ||
                                         puerto == null || puerto.length == 0 ||
                                         claveEmisor == null || claveEmisor.length == 0 ||
+                                        privadaEmisor == null || privadaEmisor.length == 0 ||
                                         claveDestinatario == null || claveDestinatario.length == 0 ||
                                         dinero == null || dinero.length == 0 ||
-                                        parseFloat(dinero) <= 0"
+                                        parseFloat(dinero) <= 0 || isNaN(parseFloat(dinero))"
                                 left>
                             EMITIR
                         </v-btn>
@@ -73,6 +94,8 @@
 
 import axios from 'axios';
 
+import CryptoModule from '../assets/js/models/CryptoModule';
+
 
 export default {
 
@@ -82,22 +105,50 @@ export default {
             ip: null,
             puerto: null,
             claveEmisor: null,
+            privadaEmisor: null,
             claveDestinatario: null,
             dinero: null
         }
     },
     methods: {
         sendTransaction() {
+            console.log("entrando")
+            let timestamp = Date.now();
+
+            let toSign = ""
+                + this.claveEmisor + ","
+                + this.claveDestinatario + ","
+                + timestamp + ","
+                + this.dinero;
+
+
+            let digitalSign = CryptoModule.sign(this.privadaEmisor, toSign);
+            console.log("dfsa")
+
+            console.log(CryptoModule.validateSign(this.claveEmisor,digitalSign, toSign));
+
+            let toHash = ""
+                + this.claveEmisor + ","
+                + this.claveDestinatario + ","
+                + digitalSign + ","
+                + timestamp + ","
+                + this.dinero;
+
+            console.log(toHash);
+
+            let hash = CryptoModule.getHash(toHash);
+
+
+
             let jsonTransaction = {
                 "senderPublicKey": this.claveEmisor,
                 "receiverPublicKey": this.claveDestinatario,
                 "amount": this.dinero,
-                "digitalSign": "",
-                "timestamp": "",
-                "hash": ""
+                "digitalSign": digitalSign,
+                "timestamp": timestamp,
+                "hash": hash
             }
 
-            console.log('http://'+this.ip+':'+this.puerto+'/addTransaction');
             axios.post('http://'+this.ip+':'+this.puerto+'/addUserTransaction', jsonTransaction)
                 .then(function (response) {
                     // handle success
